@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>When Android backup and restore tools may fail | lsh::blog</title>
+<link href="../../assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="https://lyubomyr-shaydariv.github.io/posts/2016-08-27-when-android-backup-and-restore-tools-may-fail/">
+<link rel="icon" href="../../favicon.png" sizes="16x16">
+<!--[if lt IE 9]><script src="/assets/js/html5.js"></script><![endif]--><meta name="author" content="Lyubomyr Shaydariv">
+<meta property="og:site_name" content="lsh::blog">
+<meta property="og:title" content="When Android backup and restore tools may fail">
+<meta property="og:url" content="https://lyubomyr-shaydariv.github.io/posts/2016-08-27-when-android-backup-and-restore-tools-may-fail/">
+<meta property="og:description" content="The original question was originally posted on August 27, 2016 at Android StackExchange
+
+Recently I've faced with a problem of migrating applications and their data from one device to another.
+Backing">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2016-08-27T00:00:00+03:00">
+<meta property="article:tag" content="android">
+<meta property="article:tag" content="backup-and-restore">
+</head>
+<body>
+    <section class="social"><ul>
+<li><a href="../../index.html" title="home"><i class="icon-home"></i></a></li>
+            <li><a href="../../archive.html" title="archive"><i class="icon-folder-open-alt"></i></a></li>
+            <li><a href="../../categories/index.html" title="tags"><i class="icon-tags"></i></a></li>
+            <li><a href="../../rss.xml" title="RSS feed"><i class="icon-rss"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/lyubomyr-shaydariv-7b4bbb21/" title="me @ LinkedIn"><i class="icon-user"></i></a></li>
+            <li><a href="https://stackexchange.com/users/55617/lyubomyr-shaydariv" title="me @ StackExchange"><i class="icon-stackexchange"></i></a></li>
+            <li><a href="https://github.com/lyubomyr-shaydariv" title="me @ Github"><i class="icon-github"></i></a></li>
+            <li><a href="../../pages/about-me/index.html" title="about me"><i class="icon-smile"></i></a></li>
+
+        </ul></section><section class="page-content"><div class="content" rel="main">
+            
+    <div class="post">
+    
+    <h1 class="p-name entry-title" itemprop="headline name">When Android backup and restore tools may fail</h1>
+
+        <div class="meta">
+            <div class="authordate">
+                <time class="timeago" datetime="2016-08-27T00:00:00+03:00">2016-08-27 00:00</time>
+            
+
+            
+          |  
+        <a href="index.md" id="sourcelink">Source</a>
+
+            </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="../../categories/android/" rel="tag">android</a></li>
+           <li><a class="tag p-category" href="../../categories/backup-and-restore/" rel="tag">backup-and-restore</a></li>
+        </ul>
+</div>
+
+        </div>
+        <div class="body">
+            <div>
+<blockquote>
+<p>The original question was originally posted on August 27, 2016 at <a href="http://android.stackexchange.com/questions/155957/cannot-restore-an-adb-backup-due-to-a-tarball-with-a-broken-header">Android StackExchange</a></p>
+</blockquote>
+<p>Recently I've faced with a problem of migrating applications and their data from one device to another.
+Backing up and restoring is not a hard think, at least it should not be.
+However, standard Android approach may not work as expected causing weird issues.
+Let's take a look at one of them.</p>
+<!-- TEASER_END -->
+
+<p>I have two devices that have Android 5.0.2 and 6.0.1 respectively (LG Optimus E975, Android 5.0.2, CyanogenMod 12-2015... and Samsung Galaxy S5, Android 6.0.2, flashed to a newer Sprint stock firmware (initially Android 5.0.x earlier)).
+I would like to migrate some non-cloud apps from the device with the older Android version to the new one using <code>adb</code>.
+The backing up command is simple:</p>
+<pre class="code literal-block">adb backup -apk -f foo.bar.baz.ab foo.bar.baz
+</pre>
+<p>Now, after connecting the device with the newer Android version, the following command is expected to work:</p>
+<pre class="code literal-block">adb restore foo.bar.baz.ab
+</pre>
+<p>Unfortunately it isn't.
+As usual, the restoring process fails silently just reporting that the restoring process is finished.
+Actually nothing really happens.
+And here are the logs:</p>
+<pre class="code literal-block">adb logcat -s BackupManagerService
+</pre>
+<pre class="code literal-block"><span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">44.100</span>  <span class="mf">1300</span>  <span class="mf">2300</span> <span class="n">I</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">Beginning</span> <span class="n">full</span> <span class="kd">restore</span><span class="mf">...</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">44.100</span>  <span class="mf">1300</span>  <span class="mf">2300</span> <span class="n">D</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">Starting</span> <span class="kd">restore</span> <span class="n">confirmation</span> <span class="n">UI</span><span class="p">,</span> <span class="kr">to</span><span class="n">ken</span><span class="o">=</span><span class="mf">1956031088</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">44.120</span>  <span class="mf">1300</span>  <span class="mf">2300</span> <span class="n">D</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="kr">Wait</span><span class="n">ing</span> <span class="kr">for</span> <span class="n">full</span> <span class="kd">restore</span> <span class="n">completion</span><span class="mf">...</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.650</span>  <span class="mf">1300</span>  <span class="mf">2450</span> <span class="n">D</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">acknowledgeFullBackupOrRestore</span> <span class="p">:</span> <span class="kr">to</span><span class="n">ken</span><span class="o">=</span><span class="mf">1956031088</span> <span class="n">allow</span><span class="o">=</span><span class="n">true</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.660</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">I</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="o">---</span> <span class="n">Performing</span> <span class="n">full</span><span class="o">-</span><span class="kd">data</span><span class="n">set</span> <span class="kd">restore</span> <span class="o">---</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.680</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">I</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">Package</span> <span class="n">foo</span><span class="mf">.</span><span class="n">bar</span><span class="mf">.</span><span class="n">baz</span> <span class="ow">not</span> <span class="n">installed</span><span class="p">;</span> <span class="n">requiring</span> <span class="n">apk</span> <span class="n">in</span> <span class="kd">data</span><span class="n">set</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.680</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">D</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">APK</span> <span class="n">file</span><span class="p">;</span> <span class="n">installing</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.680</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">D</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">Installing</span> <span class="n">from</span> <span class="n">backup</span><span class="p">:</span> <span class="n">foo</span><span class="mf">.</span><span class="n">bar</span><span class="mf">.</span><span class="n">baz</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.690</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">E</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">Unable</span> <span class="kr">to</span> <span class="n">transcribe</span> <span class="kd">restore</span><span class="n">d</span> <span class="n">apk</span> <span class="kr">for</span> <span class="n">install</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.690</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">E</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">Parse</span> <span class="n">error</span> <span class="n">in</span> <span class="n">header</span><span class="p">:</span> <span class="n">Invalid</span> <span class="n">number</span> <span class="n">in</span> <span class="n">header</span><span class="p">:</span> <span class="err">'</span><span class="n">я</span><span class="err">╛</span><span class="n">В</span><span class="err">'</span> <span class="kr">for</span> <span class="n">radix</span> <span class="mf">8</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.710</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">W</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">io</span> <span class="n">exception</span> <span class="kr">on</span> <span class="kd">restore</span> <span class="n">socket</span> <span class="kr">read</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.710</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">W</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">java</span><span class="mf">.</span><span class="n">io</span><span class="mf">.</span><span class="n">IOException</span><span class="p">:</span> <span class="n">Invalid</span> <span class="n">number</span> <span class="n">in</span> <span class="n">header</span><span class="p">:</span> <span class="err">'</span><span class="n">я</span><span class="err">╛</span><span class="n">В</span><span class="err">'</span> <span class="kr">for</span> <span class="n">radix</span> <span class="mf">8</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.710</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">W</span> <span class="n">BackupManagerService</span><span class="p">:</span>  <span class="n">at</span> <span class="n">com</span><span class="mf">.</span><span class="ow">and</span><span class="n">roid</span><span class="mf">.</span><span class="n">server</span><span class="mf">.</span><span class="n">backup</span><span class="mf">.</span><span class="n">BackupManagerService$PerformAdbRestoreTask</span><span class="mf">.</span><span class="n">extractRadix</span><span class="p">(</span><span class="n">BackupManagerService</span><span class="mf">.</span><span class="n">java</span><span class="p">:</span><span class="mf">7380</span><span class="p">)</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.710</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">W</span> <span class="n">BackupManagerService</span><span class="p">:</span>  <span class="n">at</span> <span class="n">com</span><span class="mf">.</span><span class="ow">and</span><span class="n">roid</span><span class="mf">.</span><span class="n">server</span><span class="mf">.</span><span class="n">backup</span><span class="mf">.</span><span class="n">BackupManagerService$PerformAdbRestoreTask</span><span class="mf">.</span><span class="kr">read</span><span class="n">TarHeaders</span><span class="p">(</span><span class="n">BackupManagerService</span><span class="mf">.</span><span class="n">java</span><span class="p">:</span><span class="mf">7179</span><span class="p">)</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.710</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">W</span> <span class="n">BackupManagerService</span><span class="p">:</span>  <span class="n">at</span> <span class="n">com</span><span class="mf">.</span><span class="ow">and</span><span class="n">roid</span><span class="mf">.</span><span class="n">server</span><span class="mf">.</span><span class="n">backup</span><span class="mf">.</span><span class="n">BackupManagerService$PerformAdbRestoreTask</span><span class="mf">.</span><span class="kd">restore</span><span class="kr">On</span><span class="n">eFile</span><span class="p">(</span><span class="n">BackupManagerService</span><span class="mf">.</span><span class="n">java</span><span class="p">:</span><span class="mf">6396</span><span class="p">)</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.710</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">W</span> <span class="n">BackupManagerService</span><span class="p">:</span>  <span class="n">at</span> <span class="n">com</span><span class="mf">.</span><span class="ow">and</span><span class="n">roid</span><span class="mf">.</span><span class="n">server</span><span class="mf">.</span><span class="n">backup</span><span class="mf">.</span><span class="n">BackupManagerService$PerformAdbRestoreTask</span><span class="mf">.</span><span class="kr">run</span><span class="p">(</span><span class="n">BackupManagerService</span><span class="mf">.</span><span class="n">java</span><span class="p">:</span><span class="mf">6254</span><span class="p">)</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.710</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">W</span> <span class="n">BackupManagerService</span><span class="p">:</span>  <span class="n">at</span> <span class="n">java</span><span class="mf">.</span><span class="n">lang</span><span class="mf">.</span><span class="n">Thread</span><span class="mf">.</span><span class="kr">run</span><span class="p">(</span><span class="n">Thread</span><span class="mf">.</span><span class="n">java</span><span class="p">:</span><span class="mf">818</span><span class="p">)</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.710</span>  <span class="mf">1300</span>  <span class="mf">2300</span> <span class="n">I</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">Full</span> <span class="kd">restore</span> <span class="n">processing</span> <span class="n">complete</span><span class="mf">.</span>  
+<span class="mf">08</span><span class="o">-</span><span class="mf">27</span> <span class="mf">01</span><span class="p">:</span><span class="mf">02</span><span class="p">:</span><span class="mf">45.720</span>  <span class="mf">1300</span> <span class="mf">18181</span> <span class="n">D</span> <span class="n">BackupManagerService</span><span class="p">:</span> <span class="n">Full</span> <span class="kd">restore</span> <span class="n">pass</span> <span class="n">complete</span><span class="mf">.</span>  
+</pre>
+<p>It looks somewhat strange that the same backup format cannot be restored on a newer device.
+I've also tried to repack the underlying tarball using <a href="https://github.com/nelenkov/android-backup-extractor"><code>nelenkov/android-backup-extractor</code></a> preserving the same file order (<code>tar cvf ... -T files.lst</code>) hoping that the broken header gets repaired (a precompiled binary, Git commit hash <code>fcb4ee5af3ec973a406709de889a5cf340b61ce1</code>, still can be downloaded <a href="../../downloads/abe-all-fcb4ee5af3ec973a406709de889a5cf340b61ce1.jar">here</a>).
+No luck.</p>
+<p>Trying out the backup and restore tools from <a href="https://play.google.com/store">Google Play</a> didn't have a fine result as well.
+Some of the tools were just weird, and some of them, like <a href="https://play.google.com/store/apps/details?id=com.keramidas.TitaniumBackup">Titanium Backup</a>, were unable to restore the backups.</p>
+<p>After a whole day of various experiments with another tools I've accidentally figured out that specifying the <code>-apk</code> key was the problem.
+Simply omitting the flag during a backup operation makes it fully restorable.</p>
+<p>So my new backup/restore plan became as follows:</p>
+<ul>
+<li>device 1: backup data only</li>
+<li>device 2: backup APK+data retaining the APK only later</li>
+<li>device 2: restore the APK using <code>adb install</code>
+</li>
+<li>device 2: restore the data using <code>adb restore</code>
+</li>
+</ul>
+<p>Here are the scripts:</p>
+<h5>backup.sh</h5>
+<pre class="code literal-block"><span class="ch">#!/bin/bash</span>
+
+<span class="nb">set</span> -e
+
+<span class="nv">PACKAGE</span><span class="o">=</span><span class="nv">$1</span>
+
+<span class="k">if</span> <span class="o">[</span> -z <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+    <span class="nb">echo</span> no package specified
+    <span class="nb">exit</span>
+<span class="k">fi</span>
+
+<span class="nb">echo</span> <span class="s2">"&gt;&gt;&gt; Backing up </span><span class="nv">$PACKAGE</span><span class="s2"> data..."</span>
+adb backup -f <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span>.DATA.ab <span class="nv">$PACKAGE</span>
+
+<span class="nb">echo</span> <span class="s2">"&gt;&gt;&gt; Backing up </span><span class="nv">$PACKAGE</span><span class="s2"> APK..."</span>
+adb backup -apk -f <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span>.APK.ab <span class="nv">$PACKAGE</span>
+
+<span class="nb">echo</span> <span class="s2">"&gt;&gt;&gt; Extracting APK..."</span>
+java -jar abe-all.jar unpack <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span>.APK.ab <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span>.APK.ab.tar
+rm <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span>.APK.ab
+<span class="nv">APK_FILENAME</span><span class="o">=</span><span class="k">$(</span>basename <span class="k">$(</span>tar tf <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span>.APK.ab.tar <span class="p">|</span> grep <span class="s1">'^apps/'</span><span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span><span class="s1">'/a/'</span><span class="k">))</span>
+tar xvf <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span>.APK.ab.tar -C ./ <span class="s2">"apps/</span><span class="nv">$PACKAGE</span><span class="s2">/a/</span><span class="nv">$APK_FILENAME</span><span class="s2">"</span> --strip-components<span class="o">=</span><span class="m">3</span>
+mv <span class="s2">"</span><span class="nv">$APK_FILENAME</span><span class="s2">"</span> <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span>.apk
+rm <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span>.APK.ab.tar
+
+<span class="nb">echo</span>
+<span class="nb">echo</span> <span class="s2">"*************"</span>
+<span class="nb">echo</span> <span class="s2">"*** Done ***"</span>
+<span class="nb">echo</span> <span class="s2">"*************"</span>
+</pre>
+<p>This script requires a package name as the input parameter and stores an APK and its data as <code>foo.bar.apk</code> and <code>foo.bar.DATA.ab</code> respectively.
+I also implemented it as a twice-backup script (a device asks for making a backup two times) because I didn't want to re-pack underlying tarballs preserving the original file order just making sure that the <code>DATA.ab</code> file is in its original state.</p>
+<h5>restore.sh</h5>
+<pre class="code literal-block"><span class="ch">#!/bin/bash</span>
+
+<span class="nb">set</span> -e
+
+<span class="nv">PACKAGE</span><span class="o">=</span><span class="nv">$1</span>
+
+<span class="k">if</span> <span class="o">[</span> -z <span class="s2">"</span><span class="nv">$PACKAGE</span><span class="s2">"</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span>
+    <span class="nb">echo</span> no package specified
+    <span class="nb">exit</span>
+<span class="k">fi</span>
+
+<span class="nb">echo</span> <span class="s2">"&gt;&gt;&gt; Installing </span><span class="nv">$PACKAGE</span><span class="s2"> APK..."</span>
+adb install -r <span class="nv">$PACKAGE</span>.apk
+
+<span class="nb">echo</span> <span class="s2">"&gt;&gt;&gt; Restoring </span><span class="nv">$PACKAGE</span><span class="s2"> data..."</span>
+adb restore <span class="nv">$PACKAGE</span>.DATA.ab
+
+<span class="nb">echo</span>
+<span class="nb">echo</span> <span class="s2">"************"</span>
+<span class="nb">echo</span> <span class="s2">"*** Done ***"</span>
+<span class="nb">echo</span> <span class="s2">"************"</span>
+</pre>
+<p>This script simply installs an APK on a target device and restores its data.
+The only input parameter is the application package name.</p>
+<p>So the overall backup/restore process is:</p>
+<ul>
+<li>Connect device #1</li>
+<li>Execute <code>backup.sh</code> passing an application package name</li>
+<li>Click "Backup..." on the device #1 (one will be asked two times for the data and APK+data backups respectively)</li>
+<li>Repeat the previous two steps for other packages if necessary</li>
+<li>Disconnect the device #1 and connect the  device #2</li>
+<li>Execute <code>restore.sh</code> passing an application package name</li>
+<li>Click "Restore..." on the device #2 once asked</li>
+<li>Repeat the previous two steps for other packages if necessary</li>
+</ul>
+<p>That's all.
+Extracting the APK files also lets me keep applications that had been removed from Google Play.</p>
+</div>
+        </div>
+        
+        <ul class="pager hidden-print">
+<li class="previous">
+                <a href="../2016-08-25-cracking-jewels-saga-for-android/" rel="prev" title="Cracking Jewels Saga for Android">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../2016-08-30-a-little-stringbuilder-drawback/" rel="next" title="A little StringBuilder drawback">Next post</a>
+            </li>
+        </ul>
+<div id="disqus_thread"></div>
+        <script>
+        var disqus_shortname ="lsh-blog",
+            disqus_url="https://lyubomyr-shaydariv.github.io/posts/2016-08-27-when-android-backup-and-restore-tools-may-fail/",
+        disqus_title="When Android backup and restore tools may fail",
+        disqus_identifier="cache/posts/2016-08-27-when-android-backup-and-restore-tools-may-fail.html",
+        disqus_config = function () {
+            this.language = "en";
+        };
+        (function() {
+            var dsq = document.createElement('script'); dsq.async = true;
+            dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script><noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+</noscript>
+    <a href="https://disqus.com" class="dsq-brlink" rel="nofollow">Comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+        
+    
+
+
+    </div>
+
+        
+       <script>var disqus_shortname="lsh-blog";(function(){var a=document.createElement("script");a.async=true;a.src="https://"+disqus_shortname+".disqus.com/count.js";(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(a)}());</script><footer id="footer"><p>Contents © 2021         <a href="mailto:">Lyubomyr Shaydariv</a> - Powered by         <a href="https://getnikola.com" rel="nofollow">Nikola</a>         </p>
+            
+        </footer>
+</div>
+    </section><noscript>
+<style type="text/css">
+	#google-analytics-no-js-placeholder {
+		background: url("http://nojsstats.appspot.com/UA-84297561-1/lyubomyr-shaydariv.github.io");
+	}
+</style>
+<div id="google-analytics-no-js-placeholder"></div>
+</noscript>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-84297561-1', 'auto');
+  ga('send', 'pageview');
+</script><script src="../../assets/js/all-nocdn.js" type="text/javascript"></script><script type="text/javascript">
+            $(function(){
+                $('.timeago').timeago();
+            });
+        </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+Sitemap: https://lyubomyr-shaydariv.github.io/sitemapindex.xml
+
+User-Agent: *
+Host: lyubomyr-shaydariv.github.io

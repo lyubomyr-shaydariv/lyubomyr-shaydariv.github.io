@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="../assets/xml/rss.xsl" media="all"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>lsh::blog (Posts about stackoverflow)</title><link>https://lyubomyr-shaydariv.github.io/</link><description></description><atom:link href="https://lyubomyr-shaydariv.github.io/categories/stackoverflow.xml" rel="self" type="application/rss+xml"></atom:link><language>en</language><copyright>Contents © 2021 &lt;a href="mailto:"&gt;Lyubomyr Shaydariv&lt;/a&gt; </copyright><lastBuildDate>Mon, 19 Apr 2021 08:21:14 GMT</lastBuildDate><generator>Nikola (getnikola.com)</generator><docs>http://blogs.law.harvard.edu/tech/rss</docs><item><title>I hate S.O. morons</title><link>https://lyubomyr-shaydariv.github.io/posts/1970-01-01-i-hate-s-o-morons/</link><dc:creator>Lyubomyr Shaydariv</dc:creator><description>&lt;div&gt;&lt;p&gt;&lt;small&gt;&lt;em&gt;The post originally was posted on 2019-03-22 07:43:00 +0300, but it has been two years since then, so I don't really care now.&lt;/em&gt;&lt;/small&gt;&lt;/p&gt;
+&lt;p&gt;I refused to contribute to StackOverflow a year ago.
+Yeah, I still have peeked into the Gson tag &lt;a href="https://stackoverflow.com/questions/tagged/gson"&gt;hole&lt;/a&gt; anonymously.
+That was the power of the gamification I lived with almost a decade.
+Okay, I never contributed heavily, however I wouldn't let myself post a stupid answer trying to put the best I can for those morons for free.
+Yeah, that is.
+Sometimes I posted under fictional names (see idontcare and no-one-cares users there if you want), because I had a feeling I had to make a post, probably being a gamification addict.
+Come on, what's for?
+I don't know, let it go away.
+Recently I decided to &lt;a href="https://stackoverflow.com/questions/55286855/preventing-gson-from-converting-integers-to-decimals-when-deserializing-numbers"&gt;help out&lt;/a&gt; a &lt;a href="https://stackoverflow.com/users/2648/d%C3%B3nal"&gt;folk&lt;/a&gt; with 120+K reputation.
+Explaining why his deserializer is not invoked, why he's using a raw class and why it's wrong, referenced my own &lt;a href="https://github.com/google/gson/pull/1290"&gt;PR&lt;/a&gt; to Gson addressing a similar issue, I got a negative reputation point.
+After 20 minutes since I posted my answer, the OP posted my own PR calling it a feature released in Gson 2.8.5 (again, this is wrong and this is a stale PR not have yet been released).
+OP, what's wrong with you?
+I'll never post to StackOverflow anymore even anonymously leaving all the morons with their problems alone.
+Fuck it.&lt;/p&gt;&lt;/div&gt;</description><category>stackoverflow</category><guid>https://lyubomyr-shaydariv.github.io/posts/1970-01-01-i-hate-s-o-morons/</guid><pubDate>Wed, 31 Dec 1969 21:00:00 GMT</pubDate></item></channel></rss>

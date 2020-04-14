@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>The Java language seems to go a wrong way | lsh::blog</title>
+<link href="../../assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="https://lyubomyr-shaydariv.github.io/posts/2018-05-14-the-java-language-seems-to-go-a-wrong-way/">
+<link rel="icon" href="../../favicon.png" sizes="16x16">
+<!--[if lt IE 9]><script src="/assets/js/html5.js"></script><![endif]--><meta name="author" content="Lyubomyr Shaydariv">
+<meta property="og:site_name" content="lsh::blog">
+<meta property="og:title" content="The Java language seems to go a wrong way">
+<meta property="og:url" content="https://lyubomyr-shaydariv.github.io/posts/2018-05-14-the-java-language-seems-to-go-a-wrong-way/">
+<meta property="og:description" content="I'm not sure if the Java language goes a right way.
+The new Java language features look really not I would like to have in Java.
+
+
+When I started my professional career, I started it with C# 2.0 and C">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2018-05-14T09:00:00+03:00">
+<meta property="article:tag" content="java">
+</head>
+<body>
+    <section class="social"><ul>
+<li><a href="../../index.html" title="home"><i class="icon-home"></i></a></li>
+            <li><a href="../../archive.html" title="archive"><i class="icon-folder-open-alt"></i></a></li>
+            <li><a href="../../categories/index.html" title="tags"><i class="icon-tags"></i></a></li>
+            <li><a href="../../rss.xml" title="RSS feed"><i class="icon-rss"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/lyubomyr-shaydariv-7b4bbb21/" title="me @ LinkedIn"><i class="icon-user"></i></a></li>
+            <li><a href="https://stackexchange.com/users/55617/lyubomyr-shaydariv" title="me @ StackExchange"><i class="icon-stackexchange"></i></a></li>
+            <li><a href="https://github.com/lyubomyr-shaydariv" title="me @ Github"><i class="icon-github"></i></a></li>
+            <li><a href="../../pages/about-me/index.html" title="about me"><i class="icon-smile"></i></a></li>
+
+        </ul></section><section class="page-content"><div class="content" rel="main">
+            
+    <div class="post">
+    
+    <h1 class="p-name entry-title" itemprop="headline name">The Java language seems to go a wrong way</h1>
+
+        <div class="meta">
+            <div class="authordate">
+                <time class="timeago" datetime="2018-05-14T09:00:00+03:00">2018-05-14 09:00</time>
+            
+
+            
+          |  
+        <a href="index.md" id="sourcelink">Source</a>
+
+            </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="../../categories/java/" rel="tag">java</a></li>
+        </ul>
+</div>
+
+        </div>
+        <div class="body">
+            <div>
+<p>I'm not sure if the Java language goes a right way.
+The new Java language features look really not I would like to have in Java.</p>
+<!-- TEASER_END -->
+
+<p>When I started my professional career, I started it with C# 2.0 and C# 3.0.
+These were beatufiul to me and I missed many features from them when I switched to Java back in 2010.
+I didn't have an opportunity to work with C# 4.0 and later, but now C# looks like a monstrous language to me.
+And it's sad to realize that the Java language gathers a lot of.</p>
+<h4>Local-variable type inference</h4>
+<ul>
+<li>It just decreases readability drastically. No need to say about a trivial example of right-hand <code>new ArrayList&lt;...&gt;()</code>, because it hurts to know what some other expression returns. If there is a method at the right-hand, why do I need to use an IDE just to remind that the method returns something cryptic else? <code>var result = getResult();</code> is just awful.</li>
+<li>
+<code>var</code> is just unable to declare the super-most type. Seriously, <code>Collection&lt;t&gt; collection = new ArrayList&lt;&gt;(); ...; collection.stream()...</code> is way bettter because I want to deal with the collection interface, not its implementation.</li>
+<li>
+<code>var</code> will probably have <code>val</code> as its counter-part (at least from what I remember the people want to have in a next release). Why breaking the eyes to blood to distinguish between vaR and vaL? Why not <code>let</code>? Moreover, values are just something totally different. <code>var</code> is not <code>final</code> by default.</li>
+<li>It cannot work with the diamond operator.</li>
+</ul>
+<h4>Raw string literals</h4>
+<p>There is a <a href="http://openjdk.java.net/jeps/326">proposal</a>.
+I always found funny and hurting to find some stuff like that in the code I'm going to work with.
+Seriously, doesn't the current Java lexer allows breaking a string with new-lines?
+If not, then why not just improve it within the current lexer similarly to C/C++ and not introduce a new literal just to serve a silly purpose?
+Anyway, it's looks like PHP is invading the Java world.
+Another thing here that always looked weak to me: should the indentation to become a string literal value?
+Please, no.</p>
+<h4>Switch expressions</h4>
+<p>There is another <a href="http://openjdk.java.net/jeps/325">proposal</a>.
+Well, it doesn't look well-designed and would probably grow into another concept of pattern matching the most Java developers have never heard about.
+<code>break 1</code> contradicts with <code>break one</code> where <code>one</code> is a label.
+Introducing an arrow is probably another choice, but it also looks a sort of weird.
+Why no <code>if</code> expressions or <code>while</code> expressions?
+Why not a local nested <em>scope</em> expressions so that it might be implemented in any manner, something like:</p>
+<pre class="code literal-block"><span class="kd">final</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="err">@</span><span class="p">{</span>
+    <span class="k">switch</span> <span class="p">(</span> <span class="n">type</span> <span class="p">)</span> <span class="p">{</span>
+    <span class="k">case</span> <span class="n">FOO</span><span class="p">:</span> <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+    <span class="k">case</span> <span class="n">BAR</span><span class="p">:</span> <span class="k">return</span> <span class="mi">2</span><span class="p">;</span>
+    <span class="k">case</span> <span class="n">BAZ</span><span class="p">:</span> <span class="k">return</span> <span class="mi">3</span><span class="p">;</span>
+    <span class="k">default</span><span class="p">:</span> <span class="k">throw</span> <span class="k">new</span> <span class="n">IllegalArgumentException</span><span class="p">(</span><span class="n">type</span><span class="p">);</span>
+<span class="p">};</span>
+</pre>
+<p>I find the above much more extensible that this:</p>
+<pre class="code literal-block"><span class="kd">final</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="k">switch</span> <span class="p">(</span> <span class="n">type</span> <span class="p">)</span> <span class="p">{</span>
+<span class="k">case</span> <span class="n">FOO</span><span class="p">:</span> <span class="k">break</span> <span class="mi">1</span><span class="p">;</span>
+<span class="k">case</span> <span class="n">BAR</span><span class="p">:</span> <span class="k">break</span> <span class="mi">2</span><span class="p">;</span>
+<span class="k">case</span> <span class="n">BAZ</span><span class="p">:</span> <span class="k">break</span> <span class="mi">3</span><span class="p">;</span>
+<span class="k">default</span><span class="p">:</span> <span class="k">throw</span> <span class="k">new</span> <span class="n">IllegalArgumentException</span><span class="p">(</span><span class="n">type</span><span class="p">);</span>
+<span class="p">}</span>
+</pre>
+<p>or</p>
+<pre class="code literal-block"><span class="kd">final</span> <span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="k">switch</span> <span class="p">(</span> <span class="n">type</span> <span class="p">)</span> <span class="p">{</span>
+<span class="k">case</span> <span class="n">FOO</span> <span class="o">-&gt;</span> <span class="mi">1</span><span class="p">;</span>
+<span class="k">case</span> <span class="n">BAR</span> <span class="o">-&gt;</span> <span class="mi">2</span><span class="p">;</span>
+<span class="k">case</span> <span class="n">BAZ</span> <span class="o">-&gt;</span> <span class="mi">3</span><span class="p">;</span>
+<span class="k">default</span> <span class="o">-&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+<p>Let-it-look-like-a-lambda design.
+This is just an example but it can handle switches, iterations, branching, whatever you can put in a local nested scope.
+But yeah, no people look a step ahead.
+I believed that the ternary operator <code>?:</code> can be a nice thing to use everywhere, but I almost refused to use it and use it in very rare cases.
+Even more, I think that such an above thing just requires to be extracted to another private method that can be reused, have a good name, and just take less room at the call site.</p>
+<h3>What I really miss in Java</h3>
+<p>None of these improvements are solid.
+All of them have serious design issues or contradictions.
+And it's sad too see how Java turns from a verbose but gentle language into an ugly collect-these-all-features-no-matter-whether-they-are-fine monster.
+Seriously, Java really needs not what can be handled by ANY Java IDE today, and Java devs seem to become more lazy now, but what is hard to implement:</p>
+<ul>
+<li>There is no <code>async</code>/<code>await</code>. <code>CompletableFuture</code>s are hard to implement and they cannot share the current function scope.</li>
+<li>There are no generators. I'm tired of writing complex iterators and spliterators every time I need something to be truly lazy.</li>
+<li>No string interpolation.</li>
+<li>No scope expressions.</li>
+<li>No LINQ or anything like that.</li>
+<li>There is no support for compile-time metaprogramming. I could just implement a for/else construct or a decorator pattern implementation, or whatever I could develop to simplify my code.</li>
+</ul>
+<p>All of the above are not Java-instead-of-my-fav-IDE stuff, but fundamental improvements that could make Java less verbose using expressional power.
+But Java seems to go a wrong way.</p>
+</div>
+        </div>
+        
+        <ul class="pager hidden-print">
+<li class="previous">
+                <a href="../2018-05-06-detecting-excessively-suppressed-redirects-in-mediawiki/" rel="prev" title="Detecting excessively suppressed redirects in MediaWiki">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../2018-07-18-efficient-git-filter-branch-index-filter/" rel="next" title="Efficient git filter-branch and --index-filter implementation">Next post</a>
+            </li>
+        </ul>
+<div id="disqus_thread"></div>
+        <script>
+        var disqus_shortname ="lsh-blog",
+            disqus_url="https://lyubomyr-shaydariv.github.io/posts/2018-05-14-the-java-language-seems-to-go-a-wrong-way/",
+        disqus_title="The Java language seems to go a wrong way",
+        disqus_identifier="cache/posts/2018-05-14-the-java-language-seems-to-go-a-wrong-way.html",
+        disqus_config = function () {
+            this.language = "en";
+        };
+        (function() {
+            var dsq = document.createElement('script'); dsq.async = true;
+            dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script><noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+</noscript>
+    <a href="https://disqus.com" class="dsq-brlink" rel="nofollow">Comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+        
+    
+
+
+    </div>
+
+        
+       <script>var disqus_shortname="lsh-blog";(function(){var a=document.createElement("script");a.async=true;a.src="https://"+disqus_shortname+".disqus.com/count.js";(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(a)}());</script><footer id="footer"><p>Contents © 2021         <a href="mailto:">Lyubomyr Shaydariv</a> - Powered by         <a href="https://getnikola.com" rel="nofollow">Nikola</a>         </p>
+            
+        </footer>
+</div>
+    </section><noscript>
+<style type="text/css">
+	#google-analytics-no-js-placeholder {
+		background: url("http://nojsstats.appspot.com/UA-84297561-1/lyubomyr-shaydariv.github.io");
+	}
+</style>
+<div id="google-analytics-no-js-placeholder"></div>
+</noscript>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-84297561-1', 'auto');
+  ga('send', 'pageview');
+</script><script src="../../assets/js/all-nocdn.js" type="text/javascript"></script><script type="text/javascript">
+            $(function(){
+                $('.timeago').timeago();
+            });
+        </script>
+</body>
+</html>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Making fun with Java and C preprocessor | lsh::blog</title>
+<link href="../../assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="https://lyubomyr-shaydariv.github.io/posts/2016-09-06-fun-with-java-and-c-preprocessor/">
+<link rel="icon" href="../../favicon.png" sizes="16x16">
+<!--[if lt IE 9]><script src="/assets/js/html5.js"></script><![endif]--><meta name="author" content="Lyubomyr Shaydariv">
+<meta property="og:site_name" content="lsh::blog">
+<meta property="og:title" content="Making fun with Java and C preprocessor">
+<meta property="og:url" content="https://lyubomyr-shaydariv.github.io/posts/2016-09-06-fun-with-java-and-c-preprocessor/">
+<meta property="og:description" content="Sometimes, usually on Fridays, there is nothing to do.
+And I always missed a very cool feature of meta-programming in Java.
+Well, Java is not very excited about making changes in the core language, so">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2016-09-06T10:30:00+03:00">
+<meta property="article:tag" content="java">
+</head>
+<body>
+    <section class="social"><ul>
+<li><a href="../../index.html" title="home"><i class="icon-home"></i></a></li>
+            <li><a href="../../archive.html" title="archive"><i class="icon-folder-open-alt"></i></a></li>
+            <li><a href="../../categories/index.html" title="tags"><i class="icon-tags"></i></a></li>
+            <li><a href="../../rss.xml" title="RSS feed"><i class="icon-rss"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/lyubomyr-shaydariv-7b4bbb21/" title="me @ LinkedIn"><i class="icon-user"></i></a></li>
+            <li><a href="https://stackexchange.com/users/55617/lyubomyr-shaydariv" title="me @ StackExchange"><i class="icon-stackexchange"></i></a></li>
+            <li><a href="https://github.com/lyubomyr-shaydariv" title="me @ Github"><i class="icon-github"></i></a></li>
+            <li><a href="../../pages/about-me/index.html" title="about me"><i class="icon-smile"></i></a></li>
+
+        </ul></section><section class="page-content"><div class="content" rel="main">
+            
+    <div class="post">
+    
+    <h1 class="p-name entry-title" itemprop="headline name">Making fun with Java and C preprocessor</h1>
+
+        <div class="meta">
+            <div class="authordate">
+                <time class="timeago" datetime="2016-09-06T10:30:00+03:00">2016-09-06 10:30</time>
+            
+
+            
+          |  
+        <a href="index.md" id="sourcelink">Source</a>
+
+            </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="../../categories/java/" rel="tag">java</a></li>
+        </ul>
+</div>
+
+        </div>
+        <div class="body">
+            <div>
+<p>Sometimes, usually on Fridays, there is nothing to do.
+And I always missed a very cool feature of meta-programming in Java.
+Well, Java is not very excited about making changes in the core language, so we can make some fun with meta-programming ourselves.
+Let's take a look at a Java and <a href="https://gcc.gnu.org/onlinedocs/cpp/">C preprocessor</a> example.
+And remember, it's just for fun and nothing else. :)</p>
+<!-- TEASER_END -->
+
+<p>Java features a cool thing called <a href="http://docs.oracle.com/javase/7/docs/technotes/guides/apt/">annotation processing tools</a>.
+Some of compiler plugins like <a href="https://projectlombok.org/">Lombok</a> and <a href="https://github.com/peichhorn/lombok-pg">lombok-pg</a> are built on top of the feature.
+They are more complex than merely a C preprocessor, so we're about to make some old-school here.</p>
+<p>One of my favorite never happened to be implemented features in Java is <code>foreach/otherwise</code>.
+I even asked <a href="https://github.com/dotnet/roslyn/issues/134">this feature</a> to be added to C#, however it was rejected by the Roslyn team.
+More meta-programming friendly languages like <a href="http://nemerle.org">Nemerle</a> implement <a href="https://github.com/rsdn/nemerle/blob/master/ncc/testsuite/positive/foreach-otherwise-macro.n">this macro</a>.
+Is it possible to implement such a feature in Java?
+Well, yes.
+We will not use <a href="http://freemarker.org/">FreeMarker</a> or any other template processing engine since the C preprocessor is the goal.</p>
+<p>First, let's define the <code>foreach/otherwise</code> macro.</p>
+<pre class="code literal-block"><span class="cp">#define __LF__ </span><span class="cm">/*</span>
+<span class="cm">    */</span><span class="cp"></span>
+
+<span class="cp">#define FOR_EACH_ARRAY_OR_OTHERWISE(A, i) \</span>
+<span class="cp">    if ( A.length &gt; 0 ) { __LF__\</span>
+<span class="cp">        for ( i = 0; i &lt; A.length; i++ ) {</span>
+<span class="cp">#define FOR_EACH_OTHERWISE } } else {</span>
+<span class="cp">#define FOR_EACH_END  }</span>
+</pre>
+<p>As the C preprocessor macro definitions are really straight-forward, they are obvious:</p>
+<ul>
+<li>
+<code>__LF__</code> — since the C preprocessor does not support new lines, it's a <a href="http://stackoverflow.com/questions/2271078/how-to-make-g-preprocessor-output-a-newline-in-a-macro">trick</a> that generates comments across two lines;</li>
+<li>
+<code>FOR_EACH_ARRAY_OR_OTHERWISE</code> — this is the most "magic" thing here: just accept two parameters (an array and the name of an iterator variable) and generate some source code checking for array length and making decision on which branch to go with;</li>
+<li>
+<code>FOR_EACH_OTHERWISE</code> — if the given array is empty, then just do nothing;</li>
+<li>
+<code>FOR_EACH_END</code> — and finalize the macro construction.</li>
+</ul>
+<p>Let's try them all:</p>
+<pre class="code literal-block"><span class="err">#</span><span class="n">include</span> <span class="s">"Base.javainc"</span>
+
+<span class="kn">import static</span> <span class="nn">java.lang.System.out</span><span class="p">;</span>
+
+<span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">HelloWorld</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="nf">HelloWorld</span><span class="p">()</span> <span class="p">{</span>
+    <span class="p">}</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="p">(</span><span class="kd">final</span> <span class="n">String</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+        <span class="n">FOR_EACH_ARRAY_OR_OTHERWISE</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+            <span class="n">out</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">"Hello "</span><span class="p">);</span>
+            <span class="n">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">args</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">);</span>
+        <span class="n">FOR_EACH_OTHERWISE</span>
+            <span class="n">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">":("</span><span class="p">);</span>
+        <span class="n">FOR_EACH_END</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>Well, not that Java-like, but we're metaprogramming, and that's not an issue. :)
+Then let's run the C preprocessor for the C preprocessor-applied almost-Java source:</p>
+<pre class="code literal-block">cpp -traditional-cpp -P -CC HelloWorld.javacpp &gt; HelloWorld.java
+</pre>
+<p>The command line options, generally and roughly speaking, are:</p>
+<ul>
+<li>
+<code>-traditional-cpp</code> — try to keep the original formatting;</li>
+<li>
+<code>-P</code> — do not generate line markers (such a line marker starts with <code>#</code> and we don't need it in Java code);</li>
+<li>
+<code>-CC</code> — keep comments thus letting to apply the new line trick.</li>
+</ul>
+<p>The command above generates the following <code>HelloWorld.java</code> content:</p>
+<pre class="code literal-block"><span class="cm">/*</span>
+<span class="cm">... C preprocessor comments go here ...</span>
+<span class="cm"> */</span>
+
+<span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">HelloWorld</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="nf">HelloWorld</span><span class="p">()</span> <span class="p">{</span>
+    <span class="p">}</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="p">(</span><span class="kd">final</span> <span class="n">String</span><span class="p">...</span> <span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">args</span><span class="p">.</span><span class="na">length</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="p">)</span> <span class="p">{</span> <span class="cm">/*</span>
+<span class="cm">        */</span>      <span class="k">for</span> <span class="p">(</span>  <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>  <span class="n">i</span> <span class="o">&lt;</span> <span class="n">args</span><span class="p">.</span><span class="na">length</span><span class="p">;</span>  <span class="n">i</span><span class="o">++</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="n">out</span><span class="p">.</span><span class="na">print</span><span class="p">(</span><span class="s">"Hello "</span><span class="p">);</span>
+            <span class="n">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">args</span><span class="o">[</span><span class="n">i</span><span class="o">]</span><span class="p">);</span>
+        <span class="p">}</span> <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="n">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">":("</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>The indentations are broken, but it's still fully legal Java code.
+If you don't bother pretty print, you might want to collapse the macro definition to one line, and remove the <code>__NL__</code> macro use along with the <code>-CC</code> key discarding the preprocessor generated comments.</p>
+<pre class="code literal-block"><span class="cp">#define FOR_EACH_ARRAY_OR_OTHERWISE(A, i) if ( A.length &gt; 0 ) { for ( i = 0; i &lt; A.length; i++ ) {</span>
+</pre>
+<p>Let's just compile it and run:</p>
+<pre class="code literal-block">javac HelloWorld.java
+java HelloWorld
+java HelloWorld YOU ME
+</pre>
+<p>The latter two <code>java</code> commands will produce <code>:(</code> and sequential <code>Hello YOU</code> and <code>Hello ME</code> respectively.
+So the <code>foreach/otherwise</code> macro is done.</p>
+<p>Note that this idea is not that crazy.
+The <a href="https://github.com/vigna/fastutil">fastutils</a> library uses the C preprocessor to generate all specialiazations for Object and all primitive types, and <a href="https://github.com/vigna/fastutil/tree/master/drv">the defined macros</a> help it a lot.</p>
+</div>
+        </div>
+        
+        <ul class="pager hidden-print">
+<li class="previous">
+                <a href="../2016-09-01-ternary-predicates-authorization-in-spring-security/" rel="prev" title="Ternary predicates authorization in Spring Security">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../2016-09-23-sequential-mockito-verifications-refactoring-with-fluent-interfaces/" rel="next" title="Sequential Mockito verifications refactoring with fluent interfaces">Next post</a>
+            </li>
+        </ul>
+<div id="disqus_thread"></div>
+        <script>
+        var disqus_shortname ="lsh-blog",
+            disqus_url="https://lyubomyr-shaydariv.github.io/posts/2016-09-06-fun-with-java-and-c-preprocessor/",
+        disqus_title="Making fun with Java and C preprocessor",
+        disqus_identifier="cache/posts/2016-09-06-fun-with-java-and-c-preprocessor.html",
+        disqus_config = function () {
+            this.language = "en";
+        };
+        (function() {
+            var dsq = document.createElement('script'); dsq.async = true;
+            dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script><noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+</noscript>
+    <a href="https://disqus.com" class="dsq-brlink" rel="nofollow">Comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+        
+    
+
+
+    </div>
+
+        
+       <script>var disqus_shortname="lsh-blog";(function(){var a=document.createElement("script");a.async=true;a.src="https://"+disqus_shortname+".disqus.com/count.js";(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(a)}());</script><footer id="footer"><p>Contents © 2021         <a href="mailto:">Lyubomyr Shaydariv</a> - Powered by         <a href="https://getnikola.com" rel="nofollow">Nikola</a>         </p>
+            
+        </footer>
+</div>
+    </section><noscript>
+<style type="text/css">
+	#google-analytics-no-js-placeholder {
+		background: url("http://nojsstats.appspot.com/UA-84297561-1/lyubomyr-shaydariv.github.io");
+	}
+</style>
+<div id="google-analytics-no-js-placeholder"></div>
+</noscript>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-84297561-1', 'auto');
+  ga('send', 'pageview');
+</script><script src="../../assets/js/all-nocdn.js" type="text/javascript"></script><script type="text/javascript">
+            $(function(){
+                $('.timeago').timeago();
+            });
+        </script>
+</body>
+</html>

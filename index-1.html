@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="Lyubomyr Shaydariv's coding blog">
+<meta name="viewport" content="width=device-width">
+<title>lsh::blog (old posts, page 1) | lsh::blog</title>
+<link href="assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="rss.xml">
+<link rel="canonical" href="https://lyubomyr-shaydariv.github.io/index-1.html">
+<link rel="icon" href="favicon.png" sizes="16x16">
+<!--[if lt IE 9]><script src="/assets/js/html5.js"></script><![endif]-->
+</head>
+<body>
+    <section class="social"><ul>
+<li><a href="index.html" title="home"><i class="icon-home"></i></a></li>
+            <li><a href="archive.html" title="archive"><i class="icon-folder-open-alt"></i></a></li>
+            <li><a href="categories/index.html" title="tags"><i class="icon-tags"></i></a></li>
+            <li><a href="rss.xml" title="RSS feed"><i class="icon-rss"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/lyubomyr-shaydariv-7b4bbb21/" title="me @ LinkedIn"><i class="icon-user"></i></a></li>
+            <li><a href="https://stackexchange.com/users/55617/lyubomyr-shaydariv" title="me @ StackExchange"><i class="icon-stackexchange"></i></a></li>
+            <li><a href="https://github.com/lyubomyr-shaydariv" title="me @ Github"><i class="icon-github"></i></a></li>
+            <li><a href="pages/about-me/index.html" title="about me"><i class="icon-smile"></i></a></li>
+
+        </ul></section><section class="page-content"><div class="content" rel="main">
+            
+        <div class="post">
+            <h1 class="title"><a href="posts/2016-09-23-sequential-mockito-verifications-refactoring-with-fluent-interfaces/">Sequential Mockito verifications refactoring with fluent interfaces</a></h1>
+            <div class="meta">
+                <div class="authordate">
+                    <time class="timeago" datetime="2016-09-23T18:41:00+03:00">2016-09-23 18:41</time>
+</div>
+                <div class="stats">
+                    
+        
+    <a href="posts/2016-09-23-sequential-mockito-verifications-refactoring-with-fluent-interfaces/#disqus_thread" data-disqus-identifier="cache/posts/2016-09-23-sequential-mockito-verifications-refactoring-with-fluent-interfaces.html">Comments</a>
+
+
+                </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="categories/java/" rel="tag">java</a></li>
+           <li><a class="tag p-category" href="categories/java-8/" rel="tag">java-8</a></li>
+           <li><a class="tag p-category" href="categories/mockito/" rel="tag">mockito</a></li>
+        </ul>
+</div>
+
+            </div>
+            <div class="body">
+                <div>
+<blockquote>
+<p>This article was originally written in Russian and published on September 12, 2016 at <a href="https://habrahabr.ru/post/309752/">Habrahabr</a></p>
+</blockquote>
+<p>Static methods have one powerful and not very desirable feature: they can be invoked from any place of the code, and they also can't really dictate the order of such invocations.
+Usually such control is really important, but sometimes the real order does not make much sense.
+For example, assertions and verifications in unit tests often do not require to be executed in strict order.
+To ensure that all verifications are done, <a href="http://mockito.org/">Mockito</a> provides a static method named <code>verifyNoMoreInteractions(...)</code>.
+Sometimes, accidentally, this method can be invoked before the last <code>verify(...)</code> is invoked so a bitter "red" test will be the result.
+But what if delegate the verification order check to the compiler?</p>
+<p class="more"><a href="posts/2016-09-23-sequential-mockito-verifications-refactoring-with-fluent-interfaces/">Read more…</a></p>
+</div>
+            </div>
+        </div>
+        <div class="post">
+            <h1 class="title"><a href="posts/2016-09-06-fun-with-java-and-c-preprocessor/">Making fun with Java and C preprocessor</a></h1>
+            <div class="meta">
+                <div class="authordate">
+                    <time class="timeago" datetime="2016-09-06T10:30:00+03:00">2016-09-06 10:30</time>
+</div>
+                <div class="stats">
+                    
+        
+    <a href="posts/2016-09-06-fun-with-java-and-c-preprocessor/#disqus_thread" data-disqus-identifier="cache/posts/2016-09-06-fun-with-java-and-c-preprocessor.html">Comments</a>
+
+
+                </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="categories/java/" rel="tag">java</a></li>
+        </ul>
+</div>
+
+            </div>
+            <div class="body">
+                <div>
+<p>Sometimes, usually on Fridays, there is nothing to do.
+And I always missed a very cool feature of meta-programming in Java.
+Well, Java is not very excited about making changes in the core language, so we can make some fun with meta-programming ourselves.
+Let's take a look at a Java and <a href="https://gcc.gnu.org/onlinedocs/cpp/">C preprocessor</a> example.
+And remember, it's just for fun and nothing else. :)</p>
+<p class="more"><a href="posts/2016-09-06-fun-with-java-and-c-preprocessor/">Read more…</a></p>
+</div>
+            </div>
+        </div>
+        <div class="post">
+            <h1 class="title"><a href="posts/2016-09-01-ternary-predicates-authorization-in-spring-security/">Ternary predicates authorization in Spring Security</a></h1>
+            <div class="meta">
+                <div class="authordate">
+                    <time class="timeago" datetime="2016-09-01T23:35:00+03:00">2016-09-01 23:35</time>
+</div>
+                <div class="stats">
+                    
+        
+    <a href="posts/2016-09-01-ternary-predicates-authorization-in-spring-security/#disqus_thread" data-disqus-identifier="cache/posts/2016-09-01-ternary-predicates-authorization-in-spring-security.html">Comments</a>
+
+
+                </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="categories/java/" rel="tag">java</a></li>
+           <li><a class="tag p-category" href="categories/oop/" rel="tag">oop</a></li>
+           <li><a class="tag p-category" href="categories/spring-framework/" rel="tag">spring-framework</a></li>
+        </ul>
+</div>
+
+            </div>
+            <div class="body">
+                <div>
+<p>Recently I posted <a href="posts/2016-09-01-ternary-predicates-authorization-in-spring-security/%7B%%20post_url%202016-08-06-java-8-libraries-and-android-applications-using-maven%20%%7D">an article on Spring Security</a> describing how to make <code>@PreAuthorize</code> expressions custom types aware.
+Today I'm going to share some my codebase for ternary authorization with three possible values: <code>GRANT</code>, <code>ABSTAIN</code>, and <code>DENY</code>.</p>
+<p class="more"><a href="posts/2016-09-01-ternary-predicates-authorization-in-spring-security/">Read more…</a></p>
+</div>
+            </div>
+        </div>
+        <div class="post">
+            <h1 class="title"><a href="posts/2016-08-30-a-little-stringbuilder-drawback/">A little StringBuilder drawback</a></h1>
+            <div class="meta">
+                <div class="authordate">
+                    <time class="timeago" datetime="2016-08-30T17:30:00+03:00">2016-08-30 17:30</time>
+</div>
+                <div class="stats">
+                    
+        
+    <a href="posts/2016-08-30-a-little-stringbuilder-drawback/#disqus_thread" data-disqus-identifier="cache/posts/2016-08-30-a-little-stringbuilder-drawback.html">Comments</a>
+
+
+                </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="categories/java/" rel="tag">java</a></li>
+        </ul>
+</div>
+
+            </div>
+            <div class="body">
+                <div>
+<p>Can you spot a mistake in the code below?</p>
+<pre class="code literal-block"><span class="n">StringBuilder</span> <span class="n">sb1</span> <span class="o">=</span> <span class="k">new</span> <span class="n">StringBuilder</span><span class="p">(</span><span class="s">"0"</span><span class="p">);</span>
+<span class="n">StringBuilder</span> <span class="n">sb2</span> <span class="o">=</span> <span class="k">new</span> <span class="n">StringBuilder</span><span class="p">(</span><span class="sc">'1'</span><span class="p">);</span>
+<span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="n">sb1</span><span class="p">.</span><span class="na">append</span><span class="p">(</span><span class="n">sb2</span><span class="p">).</span><span class="na">toString</span><span class="p">());</span>
+</pre>
+<p class="more"><a href="posts/2016-08-30-a-little-stringbuilder-drawback/">Read more…</a></p>
+</div>
+            </div>
+        </div>
+        <div class="post">
+            <h1 class="title"><a href="posts/2016-08-27-when-android-backup-and-restore-tools-may-fail/">When Android backup and restore tools may fail</a></h1>
+            <div class="meta">
+                <div class="authordate">
+                    <time class="timeago" datetime="2016-08-27T00:00:00+03:00">2016-08-27 00:00</time>
+</div>
+                <div class="stats">
+                    
+        
+    <a href="posts/2016-08-27-when-android-backup-and-restore-tools-may-fail/#disqus_thread" data-disqus-identifier="cache/posts/2016-08-27-when-android-backup-and-restore-tools-may-fail.html">Comments</a>
+
+
+                </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="categories/android/" rel="tag">android</a></li>
+           <li><a class="tag p-category" href="categories/backup-and-restore/" rel="tag">backup-and-restore</a></li>
+        </ul>
+</div>
+
+            </div>
+            <div class="body">
+                <div>
+<blockquote>
+<p>The original question was originally posted on August 27, 2016 at <a href="http://android.stackexchange.com/questions/155957/cannot-restore-an-adb-backup-due-to-a-tarball-with-a-broken-header">Android StackExchange</a></p>
+</blockquote>
+<p>Recently I've faced with a problem of migrating applications and their data from one device to another.
+Backing up and restoring is not a hard think, at least it should not be.
+However, standard Android approach may not work as expected causing weird issues.
+Let's take a look at one of them.</p>
+<p class="more"><a href="posts/2016-08-27-when-android-backup-and-restore-tools-may-fail/">Read more…</a></p>
+</div>
+            </div>
+        </div>
+        <div class="post">
+            <h1 class="title"><a href="posts/2016-08-25-cracking-jewels-saga-for-android/">Cracking Jewels Saga for Android</a></h1>
+            <div class="meta">
+                <div class="authordate">
+                    <time class="timeago" datetime="2016-08-25T00:00:00+03:00">2016-08-25 00:00</time>
+</div>
+                <div class="stats">
+                    
+        
+    <a href="posts/2016-08-25-cracking-jewels-saga-for-android/#disqus_thread" data-disqus-identifier="cache/posts/2016-08-25-cracking-jewels-saga-for-android.html">Comments</a>
+
+
+                </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="categories/android/" rel="tag">android</a></li>
+           <li><a class="tag p-category" href="categories/cracking/" rel="tag">cracking</a></li>
+           <li><a class="tag p-category" href="categories/games/" rel="tag">games</a></li>
+        </ul>
+</div>
+
+            </div>
+            <div class="body">
+                <div>
+<p>The next month marks 12 years since my first crack.
+I feel a kind of old.
+It was a nice period trying to find something new everyday.
+Software cracking was among them.
+Despite I have never been skilled in cracking and all my old cracks are quite simple, I still respect reverse engineering guys very much.</p>
+<p>Recently I've became a fan of an Android game called Jewels Saga.
+I didn't use any cheats and I could reach the 198th level being stuck on the 197th level.
+However I couldn't walk through the level for more than a week, so...</p>
+<p class="more"><a href="posts/2016-08-25-cracking-jewels-saga-for-android/">Read more…</a></p>
+</div>
+            </div>
+        </div>
+        <div class="post">
+            <h1 class="title"><a href="posts/2016-08-07-spring-security-preauthorize-annotation-custom-types-and-inspectable-dsl-support/">Spring Security @PreAuthorize annotation custom types and inspectable DSL support</a></h1>
+            <div class="meta">
+                <div class="authordate">
+                    <time class="timeago" datetime="2016-08-07T00:00:00+03:00">2016-08-07 00:00</time>
+</div>
+                <div class="stats">
+                    
+        
+    <a href="posts/2016-08-07-spring-security-preauthorize-annotation-custom-types-and-inspectable-dsl-support/#disqus_thread" data-disqus-identifier="cache/posts/2016-08-07-spring-security-preauthorize-annotation-custom-types-and-inspectable-dsl-support.html">Comments</a>
+
+
+                </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="categories/java/" rel="tag">java</a></li>
+           <li><a class="tag p-category" href="categories/spring-framework/" rel="tag">spring-framework</a></li>
+        </ul>
+</div>
+
+            </div>
+            <div class="body">
+                <div>
+<blockquote>
+<p>This article was originally written in Russian and published on August 11, 2016 at <a href="https://habrahabr.ru/post/307558/">Habrahabr</a></p>
+</blockquote>
+<p><a href="http://projects.spring.io/spring-security/">Spring Security</a> is a must-have component for Spring applications as it's responsible for user authentication and system activity authorization.
+The use of <code>@PreAuthorize</code> is one of Spring Security methods allowing to define some authorization rules easily, and these rules can grant or deny some operation for a particular user.</p>
+<p>The REST service I currently develop has to provide an endpoint to list all controller methods authorization rules.
+And, if possible, avoid revealing the specifics of <a href="http://docs.spring.io/spring/docs/current/spring-framework-reference/html/expressions.html">SpEL</a> expressions (so, use something like <code>anybody</code> instead of <code>permitAll</code>; avoid <code>principal</code> at all as an excessive expression), but return custom expressions we can process whatever we want.</p>
+<p class="more"><a href="posts/2016-08-07-spring-security-preauthorize-annotation-custom-types-and-inspectable-dsl-support/">Read more…</a></p>
+</div>
+            </div>
+        </div>
+        <div class="post">
+            <h1 class="title"><a href="posts/2016-08-06-java-8-libraries-and-android-applications-using-maven/">Java 8 libraries and Android applications using Maven</a></h1>
+            <div class="meta">
+                <div class="authordate">
+                    <time class="timeago" datetime="2016-08-06T17:44:00+03:00">2016-08-06 17:44</time>
+</div>
+                <div class="stats">
+                    
+        
+    <a href="posts/2016-08-06-java-8-libraries-and-android-applications-using-maven/#disqus_thread" data-disqus-identifier="cache/posts/2016-08-06-java-8-libraries-and-android-applications-using-maven.html">Comments</a>
+
+
+                </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="categories/android/" rel="tag">android</a></li>
+           <li><a class="tag p-category" href="categories/java/" rel="tag">java</a></li>
+           <li><a class="tag p-category" href="categories/java-8/" rel="tag">java-8</a></li>
+           <li><a class="tag p-category" href="categories/maven/" rel="tag">maven</a></li>
+           <li><a class="tag p-category" href="categories/retrolambda/" rel="tag">retrolambda</a></li>
+        </ul>
+</div>
+
+            </div>
+            <div class="body">
+                <div>
+<blockquote>
+<p>The original question was originally posted on May 17, 2015 at <a href="http://stackoverflow.com/questions/30286371/maven-using-java-8-libraries-in-applications-instrumented-with-retrolambda-mave/32510895">StackOverflow</a></p>
+<p>This article was originally written in Russian and published on September 15, 2015 at <a href="https://habrahabr.ru/post/266881/">Habrahabr</a></p>
+</blockquote>
+<p>Java 8 was released in early 2014 featuring some pretty convenient new <a href="http://www.oracle.com/technetwork/java/javase/8-whats-new-2157071.html">features</a> to simplify trivial coding and letting the developers to simplify their lives.
+Some of them are lambda expressions, method and constructor references, interface default methods as the Java language and JVM extensions, and the <a href="https://docs.oracle.com/javase/8/docs/api/java/util/stream/package-summary.html">Stream API</a> for JDK.
+Unfortunately, slow introduction of such new features has a pretty negative impact on another Java-oriented platforms.
+GWT and Android still lack the Java 8 language features official support.
+However, the last spring GWT 2.8.0 SNAPSHOT versions have lambda expressions support already.
+Android things are still different since lambda expressions rely on the Android Java runtime, and not just the compiler.
+But Maven 8 lets to solve the Java 8 use problem relatively easy.</p>
+<p class="more"><a href="posts/2016-08-06-java-8-libraries-and-android-applications-using-maven/">Read more…</a></p>
+</div>
+            </div>
+        </div>
+        <div class="post">
+            <h1 class="title"><a href="posts/2016-07-30-init/">init()</a></h1>
+            <div class="meta">
+                <div class="authordate">
+                    <time class="timeago" datetime="2016-07-30T13:29:00+03:00">2016-07-30 13:29</time>
+</div>
+                <div class="stats">
+                    
+        
+    <a href="posts/2016-07-30-init/#disqus_thread" data-disqus-identifier="cache/posts/2016-07-30-init.html">Comments</a>
+
+
+                </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="categories/misc/" rel="tag">misc</a></li>
+        </ul>
+</div>
+
+            </div>
+            <div class="body">
+                <pre class="code literal-block"><span class="n">ImmutableList</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="s">"init"</span><span class="p">).</span><span class="na">forEach</span><span class="p">(</span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">::</span><span class="n">println</span><span class="p">);</span>
+</pre>
+            </div>
+        </div>
+        <div class="post">
+            <h1 class="title"><a href="posts/1970-01-01-i-hate-s-o-morons/">I hate S.O. morons</a></h1>
+            <div class="meta">
+                <div class="authordate">
+                    <time class="timeago" datetime="1970-01-01T00:00:00+03:00">1970-01-01 00:00</time>
+</div>
+                <div class="stats">
+                    
+        
+    <a href="posts/1970-01-01-i-hate-s-o-morons/#disqus_thread" data-disqus-identifier="cache/posts/1970-01-01-i-hate-s-o-morons.html">Comments</a>
+
+
+                </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="categories/stackoverflow/" rel="tag">stackoverflow</a></li>
+        </ul>
+</div>
+
+            </div>
+            <div class="body">
+                <div>
+<p><small><em>The post originally was posted on 2019-03-22 07:43:00 +0300, but it has been two years since then, so I don't really care now.</em></small></p>
+<p>I refused to contribute to StackOverflow a year ago.
+Yeah, I still have peeked into the Gson tag <a href="https://stackoverflow.com/questions/tagged/gson">hole</a> anonymously.
+That was the power of the gamification I lived with almost a decade.
+Okay, I never contributed heavily, however I wouldn't let myself post a stupid answer trying to put the best I can for those morons for free.
+Yeah, that is.
+Sometimes I posted under fictional names (see idontcare and no-one-cares users there if you want), because I had a feeling I had to make a post, probably being a gamification addict.
+Come on, what's for?
+I don't know, let it go away.
+Recently I decided to <a href="https://stackoverflow.com/questions/55286855/preventing-gson-from-converting-integers-to-decimals-when-deserializing-numbers">help out</a> a <a href="https://stackoverflow.com/users/2648/d%C3%B3nal">folk</a> with 120+K reputation.
+Explaining why his deserializer is not invoked, why he's using a raw class and why it's wrong, referenced my own <a href="https://github.com/google/gson/pull/1290">PR</a> to Gson addressing a similar issue, I got a negative reputation point.
+After 20 minutes since I posted my answer, the OP posted my own PR calling it a feature released in Gson 2.8.5 (again, this is wrong and this is a stale PR not have yet been released).
+OP, what's wrong with you?
+I'll never post to StackOverflow anymore even anonymously leaving all the morons with their problems alone.
+Fuck it.</p>
+</div>
+            </div>
+        </div>
+    
+        <nav class="postindexpager"><ul class="pager">
+<li class="previous">
+                <a href="index-2.html" rel="prev">Newer posts</a>
+            </li>
+        </ul></nav><script>var disqus_shortname="lsh-blog";(function(){var a=document.createElement("script");a.async=true;a.src="https://"+disqus_shortname+".disqus.com/count.js";(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(a)}());</script><footer id="footer"><p>Contents © 2021         <a href="mailto:">Lyubomyr Shaydariv</a> - Powered by         <a href="https://getnikola.com" rel="nofollow">Nikola</a>         </p>
+            
+        </footer>
+</div>
+    </section><noscript>
+<style type="text/css">
+	#google-analytics-no-js-placeholder {
+		background: url("http://nojsstats.appspot.com/UA-84297561-1/lyubomyr-shaydariv.github.io");
+	}
+</style>
+<div id="google-analytics-no-js-placeholder"></div>
+</noscript>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-84297561-1', 'auto');
+  ga('send', 'pageview');
+</script><script src="assets/js/all-nocdn.js" type="text/javascript"></script><script type="text/javascript">
+            $(function(){
+                $('.timeago').timeago();
+            });
+        </script>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Java 8 libraries and Android applications using Maven | lsh::blog</title>
+<link href="../../assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="https://lyubomyr-shaydariv.github.io/posts/2016-08-06-java-8-libraries-and-android-applications-using-maven/">
+<link rel="icon" href="../../favicon.png" sizes="16x16">
+<!--[if lt IE 9]><script src="/assets/js/html5.js"></script><![endif]--><meta name="author" content="Lyubomyr Shaydariv">
+<meta property="og:site_name" content="lsh::blog">
+<meta property="og:title" content="Java 8 libraries and Android applications using Maven">
+<meta property="og:url" content="https://lyubomyr-shaydariv.github.io/posts/2016-08-06-java-8-libraries-and-android-applications-using-maven/">
+<meta property="og:description" content="The original question was originally posted on May 17, 2015 at StackOverflow
+This article was originally written in Russian and published on September 15, 2015 at Habrahabr
+
+Java 8 was released in ear">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2016-08-06T17:44:00+03:00">
+<meta property="article:tag" content="android">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="java-8">
+<meta property="article:tag" content="maven">
+<meta property="article:tag" content="retrolambda">
+</head>
+<body>
+    <section class="social"><ul>
+<li><a href="../../index.html" title="home"><i class="icon-home"></i></a></li>
+            <li><a href="../../archive.html" title="archive"><i class="icon-folder-open-alt"></i></a></li>
+            <li><a href="../../categories/index.html" title="tags"><i class="icon-tags"></i></a></li>
+            <li><a href="../../rss.xml" title="RSS feed"><i class="icon-rss"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/lyubomyr-shaydariv-7b4bbb21/" title="me @ LinkedIn"><i class="icon-user"></i></a></li>
+            <li><a href="https://stackexchange.com/users/55617/lyubomyr-shaydariv" title="me @ StackExchange"><i class="icon-stackexchange"></i></a></li>
+            <li><a href="https://github.com/lyubomyr-shaydariv" title="me @ Github"><i class="icon-github"></i></a></li>
+            <li><a href="../../pages/about-me/index.html" title="about me"><i class="icon-smile"></i></a></li>
+
+        </ul></section><section class="page-content"><div class="content" rel="main">
+            
+    <div class="post">
+    
+    <h1 class="p-name entry-title" itemprop="headline name">Java 8 libraries and Android applications using Maven</h1>
+
+        <div class="meta">
+            <div class="authordate">
+                <time class="timeago" datetime="2016-08-06T17:44:00+03:00">2016-08-06 17:44</time>
+            
+
+            
+          |  
+        <a href="index.md" id="sourcelink">Source</a>
+
+            </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="../../categories/android/" rel="tag">android</a></li>
+           <li><a class="tag p-category" href="../../categories/java/" rel="tag">java</a></li>
+           <li><a class="tag p-category" href="../../categories/java-8/" rel="tag">java-8</a></li>
+           <li><a class="tag p-category" href="../../categories/maven/" rel="tag">maven</a></li>
+           <li><a class="tag p-category" href="../../categories/retrolambda/" rel="tag">retrolambda</a></li>
+        </ul>
+</div>
+
+        </div>
+        <div class="body">
+            <div>
+<blockquote>
+<p>The original question was originally posted on May 17, 2015 at <a href="http://stackoverflow.com/questions/30286371/maven-using-java-8-libraries-in-applications-instrumented-with-retrolambda-mave/32510895">StackOverflow</a></p>
+<p>This article was originally written in Russian and published on September 15, 2015 at <a href="https://habrahabr.ru/post/266881/">Habrahabr</a></p>
+</blockquote>
+<p>Java 8 was released in early 2014 featuring some pretty convenient new <a href="http://www.oracle.com/technetwork/java/javase/8-whats-new-2157071.html">features</a> to simplify trivial coding and letting the developers to simplify their lives.
+Some of them are lambda expressions, method and constructor references, interface default methods as the Java language and JVM extensions, and the <a href="https://docs.oracle.com/javase/8/docs/api/java/util/stream/package-summary.html">Stream API</a> for JDK.
+Unfortunately, slow introduction of such new features has a pretty negative impact on another Java-oriented platforms.
+GWT and Android still lack the Java 8 language features official support.
+However, the last spring GWT 2.8.0 SNAPSHOT versions have lambda expressions support already.
+Android things are still different since lambda expressions rely on the Android Java runtime, and not just the compiler.
+But Maven 8 lets to solve the Java 8 use problem relatively easy.</p>
+<!-- TEASER_END -->
+
+<p>So it happened that all my codebase is based on Maven because:</p>
+<ul>
+<li>it's there for all the time regardless the cumbersome <code>pom.xml</code>;</li>
+<li>I can tune the build in one place for all modules regardless the nesting level;</li>
+<li>I can use the single tool to build all my universe modules.</li>
+</ul>
+<p>The general purpose libraries from the repository universe are written so they can be used as dependencies for Java SE, GWT and Android applications
+As Android still does not support Java 8, these libraries remain not migrated, in Java 6 or 7, as well as the Android applications are.
+Nevertheless, working successfully with lambda expressions in the GWT applications, I would like to migrate my entire codebase to Java 8.
+Compliling and install these libraries to a local repository is straight-forward:</p>
+<pre class="code literal-block"><span class="nt">&lt;plugin&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>org.apache.maven.plugins<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>maven-compiler-plugin<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;configuration&gt;</span>
+        <span class="nt">&lt;source&gt;</span>1.8<span class="nt">&lt;/source&gt;</span>
+        <span class="nt">&lt;target&gt;</span>1.8<span class="nt">&lt;/target&gt;</span>
+    <span class="nt">&lt;/configuration&gt;</span>
+<span class="nt">&lt;/plugin&gt;</span>
+</pre>
+<p>Once the libraries are installed to the local repository, one might try to build an application.
+However, <code>dex</code>-ing causes the following error:</p>
+<pre class="code literal-block"><span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w"> </span><span class="n">UNEXPECTED</span><span class="w"> </span><span class="k">TOP</span><span class="o">-</span><span class="k">LEVEL</span><span class="w"> </span><span class="k">EXCEPTION</span><span class="err">:</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">cf</span><span class="p">.</span><span class="n">iface</span><span class="p">.</span><span class="nl">ParseException</span><span class="p">:</span><span class="w"> </span><span class="n">bad</span><span class="w"> </span><span class="k">class</span><span class="w"> </span><span class="k">file</span><span class="w"> </span><span class="n">magic</span><span class="w"> </span><span class="p">(</span><span class="n">cafebabe</span><span class="p">)</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">version</span><span class="w"> </span><span class="p">(</span><span class="mf">0034.0000</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">cf</span><span class="p">.</span><span class="n">direct</span><span class="p">.</span><span class="n">DirectClassFile</span><span class="p">.</span><span class="n">parse0</span><span class="p">(</span><span class="n">DirectClassFile</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">472</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">cf</span><span class="p">.</span><span class="n">direct</span><span class="p">.</span><span class="n">DirectClassFile</span><span class="p">.</span><span class="nf">parse</span><span class="p">(</span><span class="n">DirectClassFile</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">406</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">cf</span><span class="p">.</span><span class="n">direct</span><span class="p">.</span><span class="n">DirectClassFile</span><span class="p">.</span><span class="n">parseToInterfacesIfNecessary</span><span class="p">(</span><span class="n">DirectClassFile</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">388</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">cf</span><span class="p">.</span><span class="n">direct</span><span class="p">.</span><span class="n">DirectClassFile</span><span class="p">.</span><span class="n">getMagic</span><span class="p">(</span><span class="n">DirectClassFile</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">251</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">command</span><span class="p">.</span><span class="n">dexer</span><span class="p">.</span><span class="n">Main</span><span class="p">.</span><span class="n">processClass</span><span class="p">(</span><span class="n">Main</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">665</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">command</span><span class="p">.</span><span class="n">dexer</span><span class="p">.</span><span class="n">Main</span><span class="p">.</span><span class="n">processFileBytes</span><span class="p">(</span><span class="n">Main</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">634</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">command</span><span class="p">.</span><span class="n">dexer</span><span class="p">.</span><span class="n">Main</span><span class="p">.</span><span class="n">access</span><span class="err">$</span><span class="mi">600</span><span class="p">(</span><span class="n">Main</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">78</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">command</span><span class="p">.</span><span class="n">dexer</span><span class="p">.</span><span class="n">Main</span><span class="err">$</span><span class="mf">1.</span><span class="n">processFileBytes</span><span class="p">(</span><span class="n">Main</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">572</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">cf</span><span class="p">.</span><span class="n">direct</span><span class="p">.</span><span class="n">ClassPathOpener</span><span class="p">.</span><span class="n">processArchive</span><span class="p">(</span><span class="n">ClassPathOpener</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">284</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">cf</span><span class="p">.</span><span class="n">direct</span><span class="p">.</span><span class="n">ClassPathOpener</span><span class="p">.</span><span class="n">processOne</span><span class="p">(</span><span class="n">ClassPathOpener</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">166</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">cf</span><span class="p">.</span><span class="n">direct</span><span class="p">.</span><span class="n">ClassPathOpener</span><span class="p">.</span><span class="n">process</span><span class="p">(</span><span class="n">ClassPathOpener</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">144</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">command</span><span class="p">.</span><span class="n">dexer</span><span class="p">.</span><span class="n">Main</span><span class="p">.</span><span class="n">processOne</span><span class="p">(</span><span class="n">Main</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">596</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">command</span><span class="p">.</span><span class="n">dexer</span><span class="p">.</span><span class="n">Main</span><span class="p">.</span><span class="n">processAllFiles</span><span class="p">(</span><span class="n">Main</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">498</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">command</span><span class="p">.</span><span class="n">dexer</span><span class="p">.</span><span class="n">Main</span><span class="p">.</span><span class="n">runMonoDex</span><span class="p">(</span><span class="n">Main</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">264</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">command</span><span class="p">.</span><span class="n">dexer</span><span class="p">.</span><span class="n">Main</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="n">Main</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">230</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">command</span><span class="p">.</span><span class="n">dexer</span><span class="p">.</span><span class="n">Main</span><span class="p">.</span><span class="n">main</span><span class="p">(</span><span class="n">Main</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">199</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w">  </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">android</span><span class="p">.</span><span class="n">dx</span><span class="p">.</span><span class="n">command</span><span class="p">.</span><span class="n">Main</span><span class="p">.</span><span class="n">main</span><span class="p">(</span><span class="n">Main</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">103</span><span class="p">)</span><span class="w"></span>
+<span class="o">[</span><span class="n">INFO</span><span class="o">]</span><span class="w"> </span><span class="p">...</span><span class="k">while</span><span class="w"> </span><span class="n">parsing</span><span class="w"> </span><span class="n">foo</span><span class="o">/</span><span class="n">bar</span><span class="o">/</span><span class="n">FooBar</span><span class="p">.</span><span class="k">class</span><span class="w"></span>
+</pre>
+<p>It means that <code>dx</code> can't process files compiled with a Java 8 compiler.
+So just trying to use <a href="https://github.com/orfjackal/retrolambda/blob/master/README.md">Retrolambda</a> that, in theory, might fix it:</p>
+<pre class="code literal-block"><span class="nt">&lt;plugin&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>net.orfjackal.retrolambda<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>retrolambda-maven-plugin<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>2.0.6<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;executions&gt;</span>
+        <span class="nt">&lt;execution&gt;</span>
+            <span class="nt">&lt;phase&gt;</span>process-classes<span class="nt">&lt;/phase&gt;</span>
+            <span class="nt">&lt;goals&gt;</span>
+                <span class="nt">&lt;goal&gt;</span>process-main<span class="nt">&lt;/goal&gt;</span>
+                <span class="nt">&lt;goal&gt;</span>process-test<span class="nt">&lt;/goal&gt;</span>
+            <span class="nt">&lt;/goals&gt;</span>
+        <span class="nt">&lt;/execution&gt;</span>
+    <span class="nt">&lt;/executions&gt;</span>
+    <span class="nt">&lt;configuration&gt;</span>
+        <span class="nt">&lt;defaultMethods&gt;</span>true<span class="nt">&lt;/defaultMethods&gt;</span>
+        <span class="nt">&lt;target&gt;</span>1.6<span class="nt">&lt;/target&gt;</span>
+    <span class="nt">&lt;/configuration&gt;</span>
+<span class="nt">&lt;/plugin&gt;</span>
+</pre>
+<p>Unfortunately, <code>foo/bar/FooBar.class</code> belongs to a library and the error is not eliminated.
+<code>retrolambda-maven-plugin</code> cannot process the application dependencies in principle because it only can process the classes in the current module (otherwise processing is required directly in the repository).
+Simply speaking, the application cannot use Java 8 libraries, but can use Java 8 for the current module only.
+It can be fixed in this way:</p>
+<ul>
+<li>unpack all Java 8 dependencies to a directory where the classfiles might be downgraded;</li>
+<li>downgrade the current module bytecode along with the unpacked dependencies bytecode;</li>
+<li>build the DEX and APK files excluding the modules that were unpacked and downgraded.</li>
+</ul>
+<p>The current <code>android-maven-plugin</code> runs <code>dx</code> passing all the dependencies to it making Java 8 bytecode processing impossible.
+This is what, roughly speaking, <code>android-maven-plugin</code> runs:</p>
+<pre class="code literal-block"><span class="o">$</span><span class="n">JAVA_HOME</span><span class="o">/</span><span class="n">jre</span><span class="o">/</span><span class="n">bin</span><span class="o">/</span><span class="n">java</span>
+<span class="o">-</span><span class="n">Xmx1024M</span>
+<span class="o">-</span><span class="n">jar</span> <span class="s2">"$ANDROID_HOME/sdk/build-tools/android-4.4/lib/dx.jar"</span>
+<span class="o">--</span><span class="n">dex</span>
+<span class="o">--</span><span class="n">output</span><span class="o">=$</span><span class="n">BUILD_DIRECTORY</span><span class="o">/</span><span class="n">classes</span><span class="o">.</span><span class="n">dex</span>
+<span class="o">$</span><span class="n">BUILD_DIRECTORY</span><span class="o">/</span><span class="n">classes</span>
+<span class="o">$</span><span class="n">M2_REPO</span><span class="o">/</span><span class="n">foo1</span><span class="o">-</span><span class="n">java8</span><span class="o">/</span><span class="n">bar1</span><span class="o">/</span><span class="mf">0.1</span><span class="o">-</span><span class="n">SNAPSHOT</span><span class="o">/</span><span class="n">bar1</span><span class="o">-</span><span class="mf">0.1</span><span class="o">-</span><span class="n">SNAPSHOT</span><span class="o">.</span><span class="n">jar</span>
+<span class="o">$</span><span class="n">M2_REPO</span><span class="o">/</span><span class="n">foo2</span><span class="o">-</span><span class="n">java8</span><span class="o">/</span><span class="n">bar2</span><span class="o">/</span><span class="mf">0.1</span><span class="o">-</span><span class="n">SNAPSHOT</span><span class="o">/</span><span class="n">bar2</span><span class="o">-</span><span class="mf">0.1</span><span class="o">-</span><span class="n">SNAPSHOT</span><span class="o">.</span><span class="n">jar</span>
+<span class="o">$</span><span class="n">M2_REPO</span><span class="o">/</span><span class="n">foo3</span><span class="o">-</span><span class="n">java8</span><span class="o">/</span><span class="n">bar3</span><span class="o">/</span><span class="mf">0.1</span><span class="o">-</span><span class="n">SNAPSHOT</span><span class="o">/</span><span class="n">bar3</span><span class="o">-</span><span class="mf">0.1</span><span class="o">-</span><span class="n">SNAPSHOT</span><span class="o">.</span><span class="n">jar</span>
+</pre>
+<p>In the example above all Java 8 dependencies are passed to the <code>dx</code> tool.
+However the plugin itself might feature a dependency filtering options hence to control the dependencies passed to the <code>dx</code> tool.
+Why it might be useful?
+Well, we can assume that some of the dependency binaries are located in a better-to-process place rather than the repository.
+Let's say, <code>${project.build.directory}/classes</code>.
+This is exactly a place where <code>retrolambda-maven-plugin</code> can process Java 8 libraries bytecode.</p>
+<p>There is a Maven <a href="https://maven.apache.org/plugins/maven-dependency-plugin/">plugin</a> that can upack the dependencies into a certain directory allowing to process the dependencies the way we want.
+For example:</p>
+<pre class="code literal-block"><span class="nt">&lt;plugin&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>org.apache.maven.plugins<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>maven-dependency-plugin<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>2.10<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;executions&gt;</span>
+        <span class="nt">&lt;execution&gt;</span>
+            <span class="nt">&lt;phase&gt;</span>process-classes<span class="nt">&lt;/phase&gt;</span>
+            <span class="nt">&lt;goals&gt;</span>
+                <span class="nt">&lt;goal&gt;</span>unpack-dependencies<span class="nt">&lt;/goal&gt;</span>
+            <span class="nt">&lt;/goals&gt;</span>
+            <span class="nt">&lt;configuration&gt;</span>
+                <span class="nt">&lt;includeScope&gt;</span>runtime<span class="nt">&lt;/includeScope&gt;</span>
+                <span class="nt">&lt;includeGroupIds&gt;</span>foo1-java8,foo2-java8,foo3-java8<span class="nt">&lt;/includeGroupIds&gt;</span>
+                <span class="nt">&lt;outputDirectory&gt;</span>${project.build.directory}/classes<span class="nt">&lt;/outputDirectory&gt;</span>
+            <span class="nt">&lt;/configuration&gt;</span>
+        <span class="nt">&lt;/execution&gt;</span>
+    <span class="nt">&lt;/executions&gt;</span>
+<span class="nt">&lt;/plugin&gt;</span>
+</pre>
+<p>I have <a href="https://github.com/simpligility/android-maven-plugin/pull/632">implemented</a> a few dependency filter management options to an <code>android-maven-plugin</code> fork.
+They are including and excluding (<code>excludes</code> and <code>includes</code>) by group ID, arifact ID and version filters.
+Artifact IDs and versions specifiers are optional.
+All elements identifying an artifact or an artifact group must be separated with a colon.
+However it's possible to test Java 8 and Java 8 dependencies in an Android application, while the pull request is still pending to be merged to the original repository.
+Just build the plugin fork first:</p>
+<pre class="code literal-block"><span class="c1"># The last upstream merge commit hash</span>
+<span class="nv">PLUGIN_REVISION</span><span class="o">=</span>a79e45bc0721bfea97ec139311fe31d959851476
+
+<span class="c1"># Clone the fork:</span>
+git clone https://github.com/lyubomyr-shaydariv/android-maven-plugin.git
+
+<span class="c1"># Make sure to use the expected commit:</span>
+<span class="nb">cd</span> android-maven-plugin
+git checkout <span class="nv">$PLUGIN_REVISION</span>
+
+<span class="c1"># Building the plugin:</span>
+mvn clean package -Dmaven.test.skip<span class="o">=</span><span class="nb">true</span>
+
+<span class="c1"># Navigate to the target directory to prepare the fork to be installed to the Maven repository:</span>
+<span class="nb">cd</span> target
+cp android-maven-plugin-4.3.1-SNAPSHOT.jar android-maven-plugin-4.3.1-SNAPSHOT-<span class="nv">$PLUGIN_COMMIT</span>.jar
+
+<span class="c1"># Fix pom.xml:</span>
+cp ../pom.xml pom-<span class="nv">$PLUGIN_COMMIT</span>.xml
+sed -i <span class="s2">"s/&lt;version&gt;4.3.1-SNAPSHOT&lt;\\/version&gt;/&lt;version&gt;4.3.1-SNAPSHOT-</span><span class="nv">$PLUGIN_COMMIT</span><span class="s2">&lt;\\/version&gt;/g"</span> pom-<span class="nv">$PLUGIN_COMMIT</span>.xml
+
+<span class="c1"># Update the plugin descriptor:</span>
+unzip android-maven-plugin-4.3.1-SNAPSHOT-<span class="nv">$PLUGIN_COMMIT</span>.jar META-INF/maven/plugin.xml
+sed -i <span class="s2">"s/&lt;version&gt;4.3.1-SNAPSHOT&lt;\\/version&gt;/&lt;version&gt;4.3.1-SNAPSHOT-</span><span class="nv">$PLUGIN_COMMIT</span><span class="s2">&lt;\\/version&gt;/g"</span> META-INF/maven/plugin.xml
+zip android-maven-plugin-4.3.1-SNAPSHOT-<span class="nv">$PLUGIN_COMMIT</span>.jar META-INF/maven/plugin.xml
+
+<span class="c1"># Install the plugin finally:</span>
+mvn org.apache.maven.plugins:maven-install-plugin:2.5.2:install-file -DpomFile<span class="o">=</span>pom-<span class="nv">$PLUGIN_COMMIT</span>.xml -Dfile<span class="o">=</span>android-maven-plugin-4.3.1-SNAPSHOT-<span class="nv">$PLUGIN_COMMIT</span>.jar
+</pre>
+<p>Once it's done, <code>pom.xml</code> might be configured for the application:</p>
+<pre class="code literal-block"><span class="c">&lt;!-- Enable Java 8 support for the current module --&gt;</span>
+<span class="nt">&lt;plugin&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>org.apache.maven.plugins<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>maven-compiler-plugin<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>3.2<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;configuration&gt;</span>
+        <span class="nt">&lt;source&gt;</span>1.8<span class="nt">&lt;/source&gt;</span>
+        <span class="nt">&lt;target&gt;</span>1.8<span class="nt">&lt;/target&gt;</span>
+    <span class="nt">&lt;/configuration&gt;</span>
+<span class="nt">&lt;/plugin&gt;</span>
+
+<span class="c">&lt;!-- Unpack the Java 8 dependencies classes to the current build directory --&gt;</span>
+<span class="nt">&lt;plugin&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>org.apache.maven.plugins<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>maven-dependency-plugin<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>2.10<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;executions&gt;</span>
+            <span class="nt">&lt;execution&gt;</span>
+                <span class="nt">&lt;phase&gt;</span>process-classes<span class="nt">&lt;/phase&gt;</span>
+                <span class="nt">&lt;goals&gt;</span>
+                    <span class="nt">&lt;goal&gt;</span>unpack-dependencies<span class="nt">&lt;/goal&gt;</span>
+                <span class="nt">&lt;/goals&gt;</span>
+                <span class="nt">&lt;configuration&gt;</span>
+                    <span class="nt">&lt;includeScope&gt;</span>runtime<span class="nt">&lt;/includeScope&gt;</span>
+                    <span class="c">&lt;!-- It's crucial to specify Java 8 dependencies only --&gt;</span>
+                    <span class="nt">&lt;includeGroupIds&gt;</span>foo1-java8,foo2-java8.foo3-java8<span class="nt">&lt;/includeGroupIds&gt;</span>
+                    <span class="nt">&lt;outputDirectory&gt;</span>${project.build.directory}/classes<span class="nt">&lt;/outputDirectory&gt;</span>
+                <span class="nt">&lt;/configuration&gt;</span>
+        <span class="nt">&lt;/execution&gt;</span>
+    <span class="nt">&lt;/executions&gt;</span>
+<span class="nt">&lt;/plugin&gt;</span>
+
+<span class="c">&lt;!-- Process the bytecode --&gt;</span>
+<span class="nt">&lt;plugin&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>net.orfjackal.retrolambda<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>retrolambda-maven-plugin<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>2.0.6<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;executions&gt;</span>
+        <span class="nt">&lt;execution&gt;</span>
+            <span class="nt">&lt;phase&gt;</span>process-classes<span class="nt">&lt;/phase&gt;</span>
+            <span class="nt">&lt;goals&gt;</span>
+                <span class="nt">&lt;goal&gt;</span>process-main<span class="nt">&lt;/goal&gt;</span>
+                <span class="nt">&lt;goal&gt;</span>process-test<span class="nt">&lt;/goal&gt;</span>
+            <span class="nt">&lt;/goals&gt;</span>
+        <span class="nt">&lt;/execution&gt;</span>
+    <span class="nt">&lt;/executions&gt;</span>
+    <span class="nt">&lt;configuration&gt;</span>
+        <span class="nt">&lt;defaultMethods&gt;</span>true<span class="nt">&lt;/defaultMethods&gt;</span>
+        <span class="nt">&lt;target&gt;</span>1.6<span class="nt">&lt;/target&gt;</span>
+    <span class="nt">&lt;/configuration&gt;</span>
+<span class="nt">&lt;/plugin&gt;</span>
+
+<span class="c">&lt;!-- DEX-ing all non-Java 8 dependencies (by that time the target/classes directory already has the dependencies that dx can process) and pack all the stuff to an APK --&gt;</span>
+<span class="nt">&lt;plugin&gt;</span>
+    <span class="nt">&lt;groupId&gt;</span>com.simpligility.maven.plugins<span class="nt">&lt;/groupId&gt;</span>
+    <span class="nt">&lt;artifactId&gt;</span>android-maven-plugin<span class="nt">&lt;/artifactId&gt;</span>
+    <span class="nt">&lt;version&gt;</span>4.3.1-SNAPSHOT-a79e45bc0721bfea97ec139311fe31d959851476<span class="nt">&lt;/version&gt;</span>
+    <span class="nt">&lt;executions&gt;</span>
+        <span class="nt">&lt;execution&gt;</span>
+            <span class="nt">&lt;phase&gt;</span>package<span class="nt">&lt;/phase&gt;</span>
+        <span class="nt">&lt;/execution&gt;</span>
+    <span class="nt">&lt;/executions&gt;</span>
+    <span class="nt">&lt;configuration&gt;</span>
+        <span class="nt">&lt;androidManifestFile&gt;</span>${project.basedir}/src/main/android/AndroidManifest.xml<span class="nt">&lt;/androidManifestFile&gt;</span>
+        <span class="nt">&lt;assetsDirectory&gt;</span>${project.basedir}/src/main/android/assets<span class="nt">&lt;/assetsDirectory&gt;</span>
+        <span class="nt">&lt;resourceDirectory&gt;</span>${project.basedir}/src/main/android/res<span class="nt">&lt;/resourceDirectory&gt;</span>
+        <span class="nt">&lt;sdk&gt;</span>
+            <span class="nt">&lt;platform&gt;</span>19<span class="nt">&lt;/platform&gt;</span>
+        <span class="nt">&lt;/sdk&gt;</span>
+        <span class="nt">&lt;undeployBeforeDeploy&gt;</span>true<span class="nt">&lt;/undeployBeforeDeploy&gt;</span>
+        <span class="nt">&lt;proguard&gt;</span>
+            <span class="nt">&lt;skip&gt;</span>true<span class="nt">&lt;/skip&gt;</span>
+            <span class="nt">&lt;config&gt;</span>${project.basedir}/proguard.conf<span class="nt">&lt;/config&gt;</span>
+        <span class="nt">&lt;/proguard&gt;</span>
+        <span class="nt">&lt;excludes&gt;</span>
+            <span class="nt">&lt;exclude&gt;</span>foo1-java8<span class="nt">&lt;/exclude&gt;</span>
+            <span class="nt">&lt;exclude&gt;</span>foo2-java8<span class="nt">&lt;/exclude&gt;</span>
+            <span class="nt">&lt;exclude&gt;</span>foo3-java8<span class="nt">&lt;/exclude&gt;</span>
+        <span class="nt">&lt;/excludes&gt;</span>
+    <span class="nt">&lt;/configuration&gt;</span>
+    <span class="nt">&lt;extensions&gt;</span>true<span class="nt">&lt;/extensions&gt;</span>
+    <span class="nt">&lt;dependencies&gt;</span>
+        <span class="nt">&lt;dependency&gt;</span>
+            <span class="nt">&lt;groupId&gt;</span>net.sf.proguard<span class="nt">&lt;/groupId&gt;</span>
+            <span class="nt">&lt;artifactId&gt;</span>proguard-base<span class="nt">&lt;/artifactId&gt;</span>
+            <span class="nt">&lt;version&gt;</span>5.2.1<span class="nt">&lt;/version&gt;</span>
+            <span class="nt">&lt;scope&gt;</span>runtime<span class="nt">&lt;/scope&gt;</span>
+        <span class="nt">&lt;/dependency&gt;</span>
+    <span class="nt">&lt;/dependencies&gt;</span>
+<span class="nt">&lt;/plugin&gt;</span>
+</pre>
+<p>That's essentially all.
+It's worth noting that this approach only means use of Java 8 language features, and not the standard libraries like Stream API.
+Also, this approach can be used not just to make an Android application Java 8 libraries aware, but let it process 3rd party dependencies bytecode in any way.
+However, I wouldn't say that I really like this approach very much.</p>
+<p>Maybe it's all much simpler for another build tools.
+I don't even know if it can be simpler in Maven and if it's not re-inventing a wheel, but nevertheless it was fun to make Maven do what I want it to do.</p>
+<hr>
+<blockquote>
+<p>This change was <a href="https://github.com/simpligility/android-maven-plugin/commit/e56d8daa65a61b1d16f12819500a3aabcb32ba89">merged</a> to the original repository and the feature is available since Android Maven Plugin 4.4.1.</p>
+</blockquote>
+</div>
+        </div>
+        
+        <ul class="pager hidden-print">
+<li class="previous">
+                <a href="../2016-07-30-init/" rel="prev" title="init()">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../2016-08-07-spring-security-preauthorize-annotation-custom-types-and-inspectable-dsl-support/" rel="next" title="Spring Security @PreAuthorize annotation custom types and inspectable DSL support">Next post</a>
+            </li>
+        </ul>
+<div id="disqus_thread"></div>
+        <script>
+        var disqus_shortname ="lsh-blog",
+            disqus_url="https://lyubomyr-shaydariv.github.io/posts/2016-08-06-java-8-libraries-and-android-applications-using-maven/",
+        disqus_title="Java 8 libraries and Android applications using Maven",
+        disqus_identifier="cache/posts/2016-08-06-java-8-libraries-and-android-applications-using-maven.html",
+        disqus_config = function () {
+            this.language = "en";
+        };
+        (function() {
+            var dsq = document.createElement('script'); dsq.async = true;
+            dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script><noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+</noscript>
+    <a href="https://disqus.com" class="dsq-brlink" rel="nofollow">Comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+        
+    
+
+
+    </div>
+
+        
+       <script>var disqus_shortname="lsh-blog";(function(){var a=document.createElement("script");a.async=true;a.src="https://"+disqus_shortname+".disqus.com/count.js";(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(a)}());</script><footer id="footer"><p>Contents © 2021         <a href="mailto:">Lyubomyr Shaydariv</a> - Powered by         <a href="https://getnikola.com" rel="nofollow">Nikola</a>         </p>
+            
+        </footer>
+</div>
+    </section><noscript>
+<style type="text/css">
+	#google-analytics-no-js-placeholder {
+		background: url("http://nojsstats.appspot.com/UA-84297561-1/lyubomyr-shaydariv.github.io");
+	}
+</style>
+<div id="google-analytics-no-js-placeholder"></div>
+</noscript>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-84297561-1', 'auto');
+  ga('send', 'pageview');
+</script><script src="../../assets/js/all-nocdn.js" type="text/javascript"></script><script type="text/javascript">
+            $(function(){
+                $('.timeago').timeago();
+            });
+        </script>
+</body>
+</html>

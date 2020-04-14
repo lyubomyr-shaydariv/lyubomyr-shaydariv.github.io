@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Spring Security @PreAuthorize annotation custom types and inspectable DSL support | lsh::blog</title>
+<link href="../../assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="https://lyubomyr-shaydariv.github.io/posts/2016-08-07-spring-security-preauthorize-annotation-custom-types-and-inspectable-dsl-support/">
+<link rel="icon" href="../../favicon.png" sizes="16x16">
+<!--[if lt IE 9]><script src="/assets/js/html5.js"></script><![endif]--><meta name="author" content="Lyubomyr Shaydariv">
+<meta property="og:site_name" content="lsh::blog">
+<meta property="og:title" content="Spring Security @PreAuthorize annotation custom types and inspectable ">
+<meta property="og:url" content="https://lyubomyr-shaydariv.github.io/posts/2016-08-07-spring-security-preauthorize-annotation-custom-types-and-inspectable-dsl-support/">
+<meta property="og:description" content="This article was originally written in Russian and published on August 11, 2016 at Habrahabr
+
+Spring Security is a must-have component for Spring applications as it's responsible for user authenticati">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2016-08-07T00:00:00+03:00">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="spring-framework">
+</head>
+<body>
+    <section class="social"><ul>
+<li><a href="../../index.html" title="home"><i class="icon-home"></i></a></li>
+            <li><a href="../../archive.html" title="archive"><i class="icon-folder-open-alt"></i></a></li>
+            <li><a href="../../categories/index.html" title="tags"><i class="icon-tags"></i></a></li>
+            <li><a href="../../rss.xml" title="RSS feed"><i class="icon-rss"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/lyubomyr-shaydariv-7b4bbb21/" title="me @ LinkedIn"><i class="icon-user"></i></a></li>
+            <li><a href="https://stackexchange.com/users/55617/lyubomyr-shaydariv" title="me @ StackExchange"><i class="icon-stackexchange"></i></a></li>
+            <li><a href="https://github.com/lyubomyr-shaydariv" title="me @ Github"><i class="icon-github"></i></a></li>
+            <li><a href="../../pages/about-me/index.html" title="about me"><i class="icon-smile"></i></a></li>
+
+        </ul></section><section class="page-content"><div class="content" rel="main">
+            
+    <div class="post">
+    
+    <h1 class="p-name entry-title" itemprop="headline name">Spring Security @PreAuthorize annotation custom types and inspectable DSL support</h1>
+
+        <div class="meta">
+            <div class="authordate">
+                <time class="timeago" datetime="2016-08-07T00:00:00+03:00">2016-08-07 00:00</time>
+            
+
+            
+          |  
+        <a href="index.md" id="sourcelink">Source</a>
+
+            </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="../../categories/java/" rel="tag">java</a></li>
+           <li><a class="tag p-category" href="../../categories/spring-framework/" rel="tag">spring-framework</a></li>
+        </ul>
+</div>
+
+        </div>
+        <div class="body">
+            <div>
+<blockquote>
+<p>This article was originally written in Russian and published on August 11, 2016 at <a href="https://habrahabr.ru/post/307558/">Habrahabr</a></p>
+</blockquote>
+<p><a href="http://projects.spring.io/spring-security/">Spring Security</a> is a must-have component for Spring applications as it's responsible for user authentication and system activity authorization.
+The use of <code>@PreAuthorize</code> is one of Spring Security methods allowing to define some authorization rules easily, and these rules can grant or deny some operation for a particular user.</p>
+<p>The REST service I currently develop has to provide an endpoint to list all controller methods authorization rules.
+And, if possible, avoid revealing the specifics of <a href="http://docs.spring.io/spring/docs/current/spring-framework-reference/html/expressions.html">SpEL</a> expressions (so, use something like <code>anybody</code> instead of <code>permitAll</code>; avoid <code>principal</code> at all as an excessive expression), but return custom expressions we can process whatever we want.</p>
+<!-- TEASER_END -->
+
+<h3>Let's start!</h3>
+<p>Let's create a small service and define some authorization rules for the service:</p>
+<ul>
+<li>
+<code>IGreetingService.java</code> -- this interface defines a small service with a minimum operations</li>
+</ul>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">IGreetingService</span> <span class="p">{</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="n">String</span> <span class="nf">sayHelloTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="n">String</span> <span class="n">name</span><span class="p">);</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="n">String</span> <span class="nf">sayGoodByeTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="n">String</span> <span class="n">name</span><span class="p">);</span>
+
+<span class="p">}</span>
+</pre>
+<ul>
+<li>
+<code>GreetingService.java</code> -- probably the simplest service implementation that also features service methods authorization rules using the <code>@PreAuthorize</code> annotation</li>
+</ul>
+<pre class="code literal-block"><span class="nd">@Service</span>
+<span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">GreetingService</span>
+        <span class="kd">implements</span> <span class="n">IGreetingService</span> <span class="p">{</span>
+
+    <span class="nd">@Override</span>
+    <span class="nd">@Nonnull</span>
+    <span class="nd">@PreAuthorize</span><span class="p">(</span><span class="s">"@A.maySayHelloTo(principal, #name)"</span><span class="p">)</span>
+    <span class="kd">public</span> <span class="n">String</span> <span class="nf">sayHelloTo</span><span class="p">(</span>
+            <span class="nd">@P</span><span class="p">(</span><span class="s">"name"</span><span class="p">)</span> <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">name</span>
+    <span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s">"hello "</span> <span class="o">+</span> <span class="n">name</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="nd">@Override</span>
+    <span class="nd">@PreAuthorize</span><span class="p">(</span><span class="s">"@A.maySayGoodByeTo(principal, #name)"</span><span class="p">)</span>
+    <span class="kd">public</span> <span class="n">String</span> <span class="nf">sayGoodByeTo</span><span class="p">(</span>
+            <span class="nd">@P</span><span class="p">(</span><span class="s">"name"</span><span class="p">)</span> <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">name</span>
+    <span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s">"good bye"</span> <span class="o">+</span> <span class="n">name</span><span class="p">;</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<ul>
+<li>
+<code>IAuthorizationComponent.java</code> -- a simple interface as well featuring a few authorization rules</li>
+</ul>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">IAuthorizationComponent</span> <span class="p">{</span>
+
+    <span class="kt">boolean</span> <span class="nf">maySayHelloTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="n">UserDetails</span> <span class="n">principal</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="n">String</span> <span class="n">name</span><span class="p">);</span>
+
+    <span class="kt">boolean</span> <span class="nf">maySayGoodByeTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="n">UserDetails</span> <span class="n">principal</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="n">String</span> <span class="n">name</span><span class="p">);</span>
+
+<span class="p">}</span>
+</pre>
+<ul>
+<li>
+<code>AuthorizationComponent.java</code> -- the authorization rules implementation (we might also use more complex rules respecting input parameters instead of <code>true</code> and <code>false</code>, but we'll take a look below)</li>
+</ul>
+<pre class="code literal-block"><span class="nd">@Component</span><span class="p">(</span><span class="s">"A"</span><span class="p">)</span>
+<span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">AuthorizationComponent</span>
+        <span class="kd">implements</span> <span class="n">IAuthorizationComponent</span> <span class="p">{</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">maySayHelloTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">UserDetails</span> <span class="n">principal</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">maySayGoodByeTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">UserDetails</span> <span class="n">principal</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<h3>From <code>boolean</code> to expressions</h3>
+<p>A boolean expression result cannot provide the rule expression definition.
+We should define how a rule that can affect authorization somehow.
+Let's say, we decide to use an rules describing object rather than to use <code>boolean</code>.
+Such an object must only meet two requirements:</p>
+<ul>
+<li>it must be able to affect authorization process, i.e. just to return a boolean value allowing or denying an operation;</li>
+<li>it must be able to be converted to a human-readable text view (although it can be also converted to another a more machine-readable view, but this is unnecessary so far).</li>
+</ul>
+<p>According to the requirements we only need something like:</p>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">IAuthorizationExpression</span> <span class="p">{</span>
+
+    <span class="kt">boolean</span> <span class="nf">mayProceed</span><span class="p">();</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="n">String</span> <span class="nf">toHumanReadableExpression</span><span class="p">();</span>
+
+<span class="p">}</span>
+</pre>
+<p>And then just change the authorization component:</p>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">IAuthorizationComponent</span> <span class="p">{</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="n">IAuthorizationExpression</span> <span class="nf">maySayHelloTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="n">UserDetails</span> <span class="n">principal</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="n">String</span> <span class="n">name</span><span class="p">);</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="n">IAuthorizationExpression</span> <span class="nf">maySayGoodByeTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="n">UserDetails</span> <span class="n">principal</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="n">String</span> <span class="n">name</span><span class="p">);</span>
+
+<span class="p">}</span>
+</pre>
+<pre class="code literal-block"><span class="nd">@Component</span><span class="p">(</span><span class="s">"A"</span><span class="p">)</span>
+<span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">AuthorizationComponent</span>
+        <span class="kd">implements</span> <span class="n">IAuthorizationComponent</span> <span class="p">{</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">IAuthorizationExpression</span> <span class="nf">maySayHelloTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">UserDetails</span> <span class="n">principal</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">simpleAuthorizationExpression</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">IAuthorizationExpression</span> <span class="nf">maySayGoodByeTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">UserDetails</span> <span class="n">principal</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">simpleAuthorizationExpression</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<ul>
+<li>
+<code>SimpleAuthorizationExpression.java</code> -- the simplest expression that depends on a single boolean value</li>
+</ul>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">SimpleAuthorizationExpression</span>
+        <span class="kd">implements</span> <span class="n">IAuthorizationExpression</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">IAuthorizationExpression</span> <span class="n">mayProceedExpression</span> <span class="o">=</span> <span class="k">new</span> <span class="n">SimpleAuthorizationExpression</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">IAuthorizationExpression</span> <span class="n">mayNotProceedExpression</span> <span class="o">=</span> <span class="k">new</span> <span class="n">SimpleAuthorizationExpression</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">boolean</span> <span class="n">mayProceed</span><span class="p">;</span>
+
+    <span class="kd">private</span> <span class="nf">SimpleAuthorizationExpression</span><span class="p">(</span><span class="kd">final</span> <span class="kt">boolean</span> <span class="n">mayProceed</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">mayProceed</span> <span class="o">=</span> <span class="n">mayProceed</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="n">IAuthorizationExpression</span> <span class="nf">simpleAuthorizationExpression</span><span class="p">(</span><span class="kd">final</span> <span class="kt">boolean</span> <span class="n">mayProceed</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">mayProceed</span> <span class="o">?</span> <span class="n">mayProceedExpression</span> <span class="p">:</span> <span class="n">mayNotProceedExpression</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">mayProceed</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">mayProceed</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="kd">public</span> <span class="n">String</span> <span class="nf">toHumanReadableExpression</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">mayProceed</span> <span class="o">?</span> <span class="s">"TRUE"</span> <span class="p">:</span> <span class="s">"FALSE"</span><span class="p">;</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>Unfortunately, by default, <code>@PreAuthorize</code> expressions can only return boolean values.
+So we shall get the following exception trying to invoke the service methods:</p>
+<pre class="code literal-block"><span class="k">Exception</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">thread</span><span class="w"> </span><span class="ss">"main"</span><span class="w"> </span><span class="n">java</span><span class="p">.</span><span class="n">lang</span><span class="p">.</span><span class="nl">IllegalArgumentException</span><span class="p">:</span><span class="w"> </span><span class="n">Failed</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">evaluate</span><span class="w"> </span><span class="n">expression</span><span class="w"> </span><span class="s1">'@A.maySayHelloTo(principal, #name)'</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">access</span><span class="p">.</span><span class="n">expression</span><span class="p">.</span><span class="n">ExpressionUtils</span><span class="p">.</span><span class="n">evaluateAsBoolean</span><span class="p">(</span><span class="n">ExpressionUtils</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">30</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">access</span><span class="p">.</span><span class="n">expression</span><span class="p">.</span><span class="k">method</span><span class="p">.</span><span class="n">ExpressionBasedPreInvocationAdvice</span><span class="p">.</span><span class="k">before</span><span class="p">(</span><span class="n">ExpressionBasedPreInvocationAdvice</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">59</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">access</span><span class="p">.</span><span class="n">prepost</span><span class="p">.</span><span class="n">PreInvocationAuthorizationAdviceVoter</span><span class="p">.</span><span class="n">vote</span><span class="p">(</span><span class="n">PreInvocationAuthorizationAdviceVoter</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">72</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">access</span><span class="p">.</span><span class="n">prepost</span><span class="p">.</span><span class="n">PreInvocationAuthorizationAdviceVoter</span><span class="p">.</span><span class="n">vote</span><span class="p">(</span><span class="n">PreInvocationAuthorizationAdviceVoter</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">40</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">access</span><span class="p">.</span><span class="n">vote</span><span class="p">.</span><span class="n">AffirmativeBased</span><span class="p">.</span><span class="n">decide</span><span class="p">(</span><span class="n">AffirmativeBased</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">63</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">access</span><span class="p">.</span><span class="n">intercept</span><span class="p">.</span><span class="n">AbstractSecurityInterceptor</span><span class="p">.</span><span class="n">beforeInvocation</span><span class="p">(</span><span class="n">AbstractSecurityInterceptor</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">233</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">access</span><span class="p">.</span><span class="n">intercept</span><span class="p">.</span><span class="n">aopalliance</span><span class="p">.</span><span class="n">MethodSecurityInterceptor</span><span class="p">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">MethodSecurityInterceptor</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">65</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">aop</span><span class="p">.</span><span class="n">framework</span><span class="p">.</span><span class="n">ReflectiveMethodInvocation</span><span class="p">.</span><span class="n">proceed</span><span class="p">(</span><span class="n">ReflectiveMethodInvocation</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">179</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">aop</span><span class="p">.</span><span class="n">framework</span><span class="p">.</span><span class="n">JdkDynamicAopProxy</span><span class="p">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">JdkDynamicAopProxy</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">213</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">sun</span><span class="p">.</span><span class="n">proxy</span><span class="p">.</span><span class="err">$</span><span class="n">Proxy38</span><span class="p">.</span><span class="n">sayHelloTo</span><span class="p">(</span><span class="k">Unknown</span><span class="w"> </span><span class="n">Source</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">test</span><span class="p">.</span><span class="n">springfx</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">app</span><span class="p">.</span><span class="n">Application</span><span class="p">.</span><span class="n">lambda</span><span class="err">$</span><span class="n">main</span><span class="err">$</span><span class="mi">0</span><span class="p">(</span><span class="n">Application</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">23</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">test</span><span class="p">.</span><span class="n">springfx</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">app</span><span class="p">.</span><span class="n">Application</span><span class="err">$$</span><span class="n">Lambda</span><span class="err">$</span><span class="mi">7</span><span class="o">/</span><span class="mf">2043106095.</span><span class="n">run</span><span class="p">(</span><span class="k">Unknown</span><span class="w"> </span><span class="n">Source</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">test</span><span class="p">.</span><span class="n">springfx</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">fakes</span><span class="p">.</span><span class="n">FakeAuthentication</span><span class="p">.</span><span class="n">withFakeAuthentication</span><span class="p">(</span><span class="n">FakeAuthentication</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">32</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">test</span><span class="p">.</span><span class="n">springfx</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">app</span><span class="p">.</span><span class="n">Application</span><span class="p">.</span><span class="n">main</span><span class="p">(</span><span class="n">Application</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">23</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">sun</span><span class="p">.</span><span class="n">reflect</span><span class="p">.</span><span class="n">NativeMethodAccessorImpl</span><span class="p">.</span><span class="n">invoke0</span><span class="p">(</span><span class="n">Native</span><span class="w"> </span><span class="k">Method</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">sun</span><span class="p">.</span><span class="n">reflect</span><span class="p">.</span><span class="n">NativeMethodAccessorImpl</span><span class="p">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">NativeMethodAccessorImpl</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">62</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">sun</span><span class="p">.</span><span class="n">reflect</span><span class="p">.</span><span class="n">DelegatingMethodAccessorImpl</span><span class="p">.</span><span class="n">invoke</span><span class="p">(</span><span class="n">DelegatingMethodAccessorImpl</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">43</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">java</span><span class="p">.</span><span class="n">lang</span><span class="p">.</span><span class="n">reflect</span><span class="p">.</span><span class="k">Method</span><span class="p">.</span><span class="n">invoke</span><span class="p">(</span><span class="k">Method</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">497</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">intellij</span><span class="p">.</span><span class="n">rt</span><span class="p">.</span><span class="n">execution</span><span class="p">.</span><span class="n">application</span><span class="p">.</span><span class="n">AppMain</span><span class="p">.</span><span class="n">main</span><span class="p">(</span><span class="n">AppMain</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">144</span><span class="p">)</span><span class="w"></span>
+<span class="n">Caused</span><span class="w"> </span><span class="k">by</span><span class="err">:</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">expression</span><span class="p">.</span><span class="n">spel</span><span class="p">.</span><span class="nl">SpelEvaluationException</span><span class="p">:</span><span class="w"> </span><span class="nl">EL1001E</span><span class="p">:(</span><span class="n">pos</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="err">:</span><span class="w"> </span><span class="n">Type</span><span class="w"> </span><span class="n">conversion</span><span class="w"> </span><span class="n">problem</span><span class="p">,</span><span class="w"> </span><span class="n">cannot</span><span class="w"> </span><span class="nf">convert</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="nv">@javax</span><span class="p">.</span><span class="n">annotation</span><span class="p">.</span><span class="n">Nonnull</span><span class="w"> </span><span class="n">test</span><span class="p">.</span><span class="n">springfx</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">app</span><span class="p">.</span><span class="n">auth</span><span class="p">.</span><span class="n">IAuthorizationExpression</span><span class="err">$</span><span class="mi">1</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">java</span><span class="p">.</span><span class="n">lang</span><span class="p">.</span><span class="k">Boolean</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">expression</span><span class="p">.</span><span class="n">spel</span><span class="p">.</span><span class="n">support</span><span class="p">.</span><span class="n">StandardTypeConverter</span><span class="p">.</span><span class="n">convertValue</span><span class="p">(</span><span class="n">StandardTypeConverter</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">78</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">expression</span><span class="p">.</span><span class="n">common</span><span class="p">.</span><span class="n">ExpressionUtils</span><span class="p">.</span><span class="n">convertTypedValue</span><span class="p">(</span><span class="n">ExpressionUtils</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">53</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">expression</span><span class="p">.</span><span class="n">spel</span><span class="p">.</span><span class="n">standard</span><span class="p">.</span><span class="n">SpelExpression</span><span class="p">.</span><span class="n">getValue</span><span class="p">(</span><span class="n">SpelExpression</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">301</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">security</span><span class="p">.</span><span class="n">access</span><span class="p">.</span><span class="n">expression</span><span class="p">.</span><span class="n">ExpressionUtils</span><span class="p">.</span><span class="n">evaluateAsBoolean</span><span class="p">(</span><span class="n">ExpressionUtils</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">26</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="p">...</span><span class="w"> </span><span class="mi">18</span><span class="w"> </span><span class="n">more</span><span class="w"></span>
+<span class="n">Caused</span><span class="w"> </span><span class="k">by</span><span class="err">:</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">core</span><span class="p">.</span><span class="nf">convert</span><span class="p">.</span><span class="nl">ConverterNotFoundException</span><span class="p">:</span><span class="w"> </span><span class="k">No</span><span class="w"> </span><span class="n">converter</span><span class="w"> </span><span class="k">found</span><span class="w"> </span><span class="n">capable</span><span class="w"> </span><span class="k">of</span><span class="w"> </span><span class="n">converting</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="o">[</span><span class="n">@javax.annotation.Nonnull test.springfx.security.app.auth.IAuthorizationExpression$1</span><span class="o">]</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">type</span><span class="w"> </span><span class="o">[</span><span class="n">java.lang.Boolean</span><span class="o">]</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">core</span><span class="p">.</span><span class="nf">convert</span><span class="p">.</span><span class="n">support</span><span class="p">.</span><span class="n">GenericConversionService</span><span class="p">.</span><span class="n">handleConverterNotFound</span><span class="p">(</span><span class="n">GenericConversionService</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">313</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">core</span><span class="p">.</span><span class="nf">convert</span><span class="p">.</span><span class="n">support</span><span class="p">.</span><span class="n">GenericConversionService</span><span class="p">.</span><span class="nf">convert</span><span class="p">(</span><span class="n">GenericConversionService</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">195</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="k">at</span><span class="w"> </span><span class="n">org</span><span class="p">.</span><span class="n">springframework</span><span class="p">.</span><span class="n">expression</span><span class="p">.</span><span class="n">spel</span><span class="p">.</span><span class="n">support</span><span class="p">.</span><span class="n">StandardTypeConverter</span><span class="p">.</span><span class="n">convertValue</span><span class="p">(</span><span class="n">StandardTypeConverter</span><span class="p">.</span><span class="nl">java</span><span class="p">:</span><span class="mi">74</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="p">...</span><span class="w"> </span><span class="mi">21</span><span class="w"> </span><span class="n">more</span><span class="w"></span>
+</pre>
+<h3>Configuring <code>@PreAuthorize</code>
+</h3>
+<p>Firstly, to overcome the non-boolean values issue we have to configure <code>GlobalMethodSecurityConfiguration</code> since it allows to configure the evaluation context for <code>@PreAuthorize</code>.
+<code>TypeConverter</code> can help and it can be reached pretty easily:</p>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">CustomTypesGlobalMethodSecurityConfiguration</span>
+        <span class="kd">extends</span> <span class="n">GlobalMethodSecurityConfiguration</span> <span class="p">{</span>
+
+    <span class="kd">protected</span> <span class="kd">abstract</span> <span class="n">ApplicationContext</span> <span class="nf">applicationContext</span><span class="p">();</span>
+
+    <span class="kd">protected</span> <span class="kd">abstract</span> <span class="n">ConversionService</span> <span class="nf">conversionService</span><span class="p">();</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">protected</span> <span class="n">MethodSecurityExpressionHandler</span> <span class="nf">createExpressionHandler</span><span class="p">()</span> <span class="p">{</span>
+        <span class="kd">final</span> <span class="n">ApplicationContext</span> <span class="n">applicationContext</span> <span class="o">=</span> <span class="n">applicationContext</span><span class="p">();</span>
+        <span class="kd">final</span> <span class="n">TypeConverter</span> <span class="n">typeConverter</span> <span class="o">=</span> <span class="k">new</span> <span class="n">StandardTypeConverter</span><span class="p">(</span><span class="n">conversionService</span><span class="p">());</span>
+        <span class="kd">final</span> <span class="n">DefaultMethodSecurityExpressionHandler</span> <span class="n">handler</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DefaultMethodSecurityExpressionHandler</span><span class="p">()</span> <span class="p">{</span>
+            <span class="nd">@Override</span>
+            <span class="kd">public</span> <span class="n">StandardEvaluationContext</span> <span class="nf">createEvaluationContextInternal</span><span class="p">(</span><span class="kd">final</span> <span class="n">Authentication</span> <span class="n">authentication</span><span class="p">,</span> <span class="kd">final</span> <span class="n">MethodInvocation</span> <span class="n">methodInvocation</span><span class="p">)</span> <span class="p">{</span>
+                <span class="kd">final</span> <span class="n">StandardEvaluationContext</span> <span class="n">decoratedStandardEvaluationContext</span> <span class="o">=</span> <span class="kd">super</span><span class="p">.</span><span class="na">createEvaluationContextInternal</span><span class="p">(</span><span class="n">authentication</span><span class="p">,</span> <span class="n">methodInvocation</span><span class="p">);</span>
+                <span class="k">return</span> <span class="k">new</span> <span class="n">ForwardingStandardEvaluationContext</span><span class="p">()</span> <span class="p">{</span>
+                    <span class="nd">@Override</span>
+                    <span class="kd">protected</span> <span class="n">StandardEvaluationContext</span> <span class="nf">standardEvaluationContext</span><span class="p">()</span> <span class="p">{</span>
+                        <span class="k">return</span> <span class="n">decoratedStandardEvaluationContext</span><span class="p">;</span>
+                    <span class="p">}</span>
+
+                    <span class="nd">@Override</span>
+                    <span class="kd">public</span> <span class="n">TypeConverter</span> <span class="nf">getTypeConverter</span><span class="p">()</span> <span class="p">{</span>
+                        <span class="k">return</span> <span class="n">typeConverter</span><span class="p">;</span>
+                    <span class="p">}</span>
+                <span class="p">};</span>
+            <span class="p">}</span>
+        <span class="p">};</span>
+        <span class="n">handler</span><span class="p">.</span><span class="na">setApplicationContext</span><span class="p">(</span><span class="n">applicationContext</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">handler</span><span class="p">;</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>There should be a few notes.
+First, we shall use standard <code>DefaultMethodSecurityExpressionHandler</code> that makes the business itself but we shall just override the returned context.
+Second, the <code>DefaultMethodSecurityExpressionHandler</code> parent, <code>AbstractSecurityExpressionHandler</code>, does not let to create own context, but it's possible to create a so called internal context that will provide <code>TypeConverter</code> itself.
+Third, we need a forwarding decorator for <code>StandardEvaluationContext</code> in order not to break the original context behavior:</p>
+<ul>
+<li>
+<code>ForwardingStandardEvaluationContext.java</code> -- <code>StandardEvaluationContext</code> forwarding decorator</li>
+</ul>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">ForwardingStandardEvaluationContext</span>
+        <span class="kd">extends</span> <span class="n">StandardEvaluationContext</span> <span class="p">{</span>
+
+    <span class="kd">protected</span> <span class="kd">abstract</span> <span class="n">StandardEvaluationContext</span> <span class="nf">standardEvaluationContext</span><span class="p">();</span>
+
+    <span class="c1">// @formatter:off</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setRootObject</span><span class="p">(</span><span class="kd">final</span> <span class="n">Object</span> <span class="n">rootObject</span><span class="p">,</span> <span class="kd">final</span> <span class="n">TypeDescriptor</span> <span class="n">typeDescriptor</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setRootObject</span><span class="p">(</span><span class="n">rootObject</span><span class="p">,</span> <span class="n">typeDescriptor</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setRootObject</span><span class="p">(</span><span class="kd">final</span> <span class="n">Object</span> <span class="n">rootObject</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setRootObject</span><span class="p">(</span><span class="n">rootObject</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">TypedValue</span> <span class="nf">getRootObject</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">getRootObject</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">addConstructorResolver</span><span class="p">(</span><span class="kd">final</span> <span class="n">ConstructorResolver</span> <span class="n">resolver</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">addConstructorResolver</span><span class="p">(</span><span class="n">resolver</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">removeConstructorResolver</span><span class="p">(</span><span class="kd">final</span> <span class="n">ConstructorResolver</span> <span class="n">resolver</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">removeConstructorResolver</span><span class="p">(</span><span class="n">resolver</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setConstructorResolvers</span><span class="p">(</span><span class="kd">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">ConstructorResolver</span><span class="o">&gt;</span> <span class="n">constructorResolvers</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setConstructorResolvers</span><span class="p">(</span><span class="n">constructorResolvers</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">ConstructorResolver</span><span class="o">&gt;</span> <span class="nf">getConstructorResolvers</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">getConstructorResolvers</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">addMethodResolver</span><span class="p">(</span><span class="kd">final</span> <span class="n">MethodResolver</span> <span class="n">resolver</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">addMethodResolver</span><span class="p">(</span><span class="n">resolver</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">removeMethodResolver</span><span class="p">(</span><span class="kd">final</span> <span class="n">MethodResolver</span> <span class="n">methodResolver</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">removeMethodResolver</span><span class="p">(</span><span class="n">methodResolver</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setMethodResolvers</span><span class="p">(</span><span class="kd">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">MethodResolver</span><span class="o">&gt;</span> <span class="n">methodResolvers</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setMethodResolvers</span><span class="p">(</span><span class="n">methodResolvers</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">MethodResolver</span><span class="o">&gt;</span> <span class="nf">getMethodResolvers</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">getMethodResolvers</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setBeanResolver</span><span class="p">(</span><span class="kd">final</span> <span class="n">BeanResolver</span> <span class="n">beanResolver</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setBeanResolver</span><span class="p">(</span><span class="n">beanResolver</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">BeanResolver</span> <span class="nf">getBeanResolver</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">getBeanResolver</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">addPropertyAccessor</span><span class="p">(</span><span class="kd">final</span> <span class="n">PropertyAccessor</span> <span class="n">accessor</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">addPropertyAccessor</span><span class="p">(</span><span class="n">accessor</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">removePropertyAccessor</span><span class="p">(</span><span class="kd">final</span> <span class="n">PropertyAccessor</span> <span class="n">accessor</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">removePropertyAccessor</span><span class="p">(</span><span class="n">accessor</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setPropertyAccessors</span><span class="p">(</span><span class="kd">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">PropertyAccessor</span><span class="o">&gt;</span> <span class="n">propertyAccessors</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setPropertyAccessors</span><span class="p">(</span><span class="n">propertyAccessors</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">PropertyAccessor</span><span class="o">&gt;</span> <span class="nf">getPropertyAccessors</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">getPropertyAccessors</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setTypeLocator</span><span class="p">(</span><span class="kd">final</span> <span class="n">TypeLocator</span> <span class="n">typeLocator</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setTypeLocator</span><span class="p">(</span><span class="n">typeLocator</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">TypeLocator</span> <span class="nf">getTypeLocator</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">getTypeLocator</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setTypeConverter</span><span class="p">(</span><span class="kd">final</span> <span class="n">TypeConverter</span> <span class="n">typeConverter</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setTypeConverter</span><span class="p">(</span><span class="n">typeConverter</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">TypeConverter</span> <span class="nf">getTypeConverter</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">getTypeConverter</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setTypeComparator</span><span class="p">(</span><span class="kd">final</span> <span class="n">TypeComparator</span> <span class="n">typeComparator</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setTypeComparator</span><span class="p">(</span><span class="n">typeComparator</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">TypeComparator</span> <span class="nf">getTypeComparator</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">getTypeComparator</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setOperatorOverloader</span><span class="p">(</span><span class="kd">final</span> <span class="n">OperatorOverloader</span> <span class="n">operatorOverloader</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setOperatorOverloader</span><span class="p">(</span><span class="n">operatorOverloader</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">OperatorOverloader</span> <span class="nf">getOperatorOverloader</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">getOperatorOverloader</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setVariable</span><span class="p">(</span><span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">,</span> <span class="kd">final</span> <span class="n">Object</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setVariables</span><span class="p">(</span><span class="kd">final</span> <span class="n">Map</span><span class="o">&lt;</span><span class="n">String</span><span class="p">,</span> <span class="n">Object</span><span class="o">&gt;</span> <span class="n">variables</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">setVariables</span><span class="p">(</span><span class="n">variables</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">registerFunction</span><span class="p">(</span><span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">,</span> <span class="kd">final</span> <span class="n">Method</span> <span class="n">method</span><span class="p">)</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">registerFunction</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">method</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">Object</span> <span class="nf">lookupVariable</span><span class="p">(</span><span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">lookupVariable</span><span class="p">(</span><span class="n">name</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">registerMethodFilter</span><span class="p">(</span><span class="kd">final</span> <span class="n">Class</span><span class="o">&lt;?&gt;</span> <span class="n">type</span><span class="p">,</span> <span class="kd">final</span> <span class="n">MethodFilter</span> <span class="n">filter</span><span class="p">)</span> <span class="kd">throws</span> <span class="n">IllegalStateException</span> <span class="p">{</span> <span class="n">standardEvaluationContext</span><span class="p">().</span><span class="na">registerMethodFilter</span><span class="p">(</span><span class="n">type</span><span class="p">,</span> <span class="n">filter</span><span class="p">);</span> <span class="p">}</span>
+    <span class="c1">// @formatter:on</span>
+
+<span class="p">}</span>
+</pre>
+<p>Yes, Java is overly verbose, and it would be great if Java could have something like <a href="https://kotlinlang.org/docs/reference/delegation.html">by</a> in Kotlin in order to avoid too much code.
+Lombok <a href="https://projectlombok.org/features/Delegate.html">@Delegate</a> might be an option too.
+Also, a delegated field might be used rather than an abstracted method, but I think that the abstract method is slightly more flexible (however I'm not sure if Kotlin and Lombok can delegate to decorated object supplier method).</p>
+<p>The two classes above, I think, should be at the "library" layer, so that it could be used and configured in another applications.
+And now, in the application layer, we can easily create a converter to map <code>IAuthorizationExpression</code> to <code>boolean</code>:</p>
+<ul>
+<li>
+<code>SecurityConfiguration.java</code> -- we just bind the application context and the conversion service here</li>
+</ul>
+<pre class="code literal-block"><span class="nd">@Configuration</span>
+<span class="nd">@EnableGlobalMethodSecurity</span><span class="p">(</span><span class="n">prePostEnabled</span> <span class="o">=</span> <span class="kc">true</span><span class="p">,</span> <span class="n">securedEnabled</span> <span class="o">=</span> <span class="kc">true</span><span class="p">,</span> <span class="n">jsr250Enabled</span> <span class="o">=</span> <span class="kc">false</span><span class="p">)</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">SecurityConfiguration</span>
+        <span class="kd">extends</span> <span class="n">CustomTypesGlobalMethodSecurityConfiguration</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="n">ApplicationContext</span> <span class="n">applicationContext</span><span class="p">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="n">ConversionService</span> <span class="n">conversionService</span><span class="p">;</span>
+
+    <span class="kd">public</span> <span class="nf">SecurityConfiguration</span><span class="p">(</span>
+            <span class="nd">@Autowired</span> <span class="kd">final</span> <span class="n">ApplicationContext</span> <span class="n">applicationContext</span><span class="p">,</span>
+            <span class="nd">@Autowired</span> <span class="kd">final</span> <span class="n">ConversionService</span> <span class="n">conversionService</span>
+    <span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">applicationContext</span> <span class="o">=</span> <span class="n">applicationContext</span><span class="p">;</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">conversionService</span> <span class="o">=</span> <span class="n">conversionService</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">protected</span> <span class="n">ApplicationContext</span> <span class="nf">applicationContext</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">applicationContext</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">protected</span> <span class="n">ConversionService</span> <span class="nf">conversionService</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">conversionService</span><span class="p">;</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<ul>
+<li>
+<code>ConversionConfiguration.java</code> -- and this is just a configuration adding a new converter to the list of existing ones</li>
+</ul>
+<pre class="code literal-block"><span class="nd">@Configuration</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">ConversionConfiguration</span> <span class="p">{</span>
+
+    <span class="nd">@Bean</span>
+    <span class="kd">public</span> <span class="n">ConversionService</span> <span class="nf">conversionService</span><span class="p">()</span> <span class="p">{</span>
+        <span class="kd">final</span> <span class="n">DefaultConversionService</span> <span class="n">conversionService</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DefaultConversionService</span><span class="p">();</span>
+        <span class="n">conversionService</span><span class="p">.</span><span class="na">addConverter</span><span class="p">(</span><span class="n">IAuthorizationExpression</span><span class="p">.</span><span class="na">class</span><span class="p">,</span> <span class="n">Boolean</span><span class="p">.</span><span class="na">class</span><span class="p">,</span> <span class="n">IAuthorizationExpression</span><span class="p">::</span><span class="n">mayProceed</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">conversionService</span><span class="p">;</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>Now <code>IAuthorizationExpression</code> can work as <code>boolean</code> and be an operand type for the logical operations.</p>
+<h3>More complex expressions</h3>
+<p>Since we have an expression object, we can enhance its base functionality and create expressions that are more complex than <code>SimpleAuthorizationExpression</code>.
+It allows to combine expressions of any complexity still following the requirements defined earlier.</p>
+<p>I've always liked fluent interfaces which methods could be composed in convenient way.
+For example <a href="http://mockito.org/">Mockito</a> and <a href="http://hamcrest.org/">Hamcrest</a> use such an approach with might and main.
+And Java now also uses this approach for interfaces like <code>Function</code>, <code>Supplier</code>, <code>Consumer</code>, <code>Comparator</code> and so forth.
+Java 8 brought many nice features, and one of them, default methods, can be used to enhance the default expressions features.
+For example, we can add a simple AND predicate to <code>IAuthorizationExpression</code>:</p>
+<pre class="code literal-block"><span class="k">default</span> <span class="n">IAuthorizationExpression</span> <span class="nf">and</span><span class="p">(</span><span class="kd">final</span> <span class="n">IAuthorizationExpression</span> <span class="n">r</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="n">IAuthorizationExpression</span><span class="p">()</span> <span class="p">{</span>
+        <span class="nd">@Override</span>
+        <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">mayProceed</span><span class="p">()</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="n">IAuthorizationExpression</span><span class="p">.</span><span class="na">this</span><span class="p">.</span><span class="na">mayProceed</span><span class="p">()</span> <span class="o">&amp;&amp;</span> <span class="n">r</span><span class="p">.</span><span class="na">mayProceed</span><span class="p">();</span>
+        <span class="p">}</span>
+
+        <span class="nd">@Nonnull</span>
+        <span class="nd">@Override</span>
+        <span class="kd">public</span> <span class="n">String</span> <span class="nf">toHumanReadableExpression</span><span class="p">()</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="k">new</span> <span class="n">StringBuilder</span><span class="p">(</span><span class="s">"("</span><span class="p">)</span>
+                    <span class="p">.</span><span class="na">append</span><span class="p">(</span><span class="n">IAuthorizationExpression</span><span class="p">.</span><span class="na">this</span><span class="p">.</span><span class="na">toHumanReadableExpression</span><span class="p">())</span>
+                    <span class="p">.</span><span class="na">append</span><span class="p">(</span><span class="s">" AND "</span><span class="p">)</span>
+                    <span class="p">.</span><span class="na">append</span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="na">toHumanReadableExpression</span><span class="p">())</span>
+                    <span class="p">.</span><span class="na">append</span><span class="p">(</span><span class="sc">')'</span><span class="p">)</span>
+                    <span class="p">.</span><span class="na">toString</span><span class="p">();</span>
+        <span class="p">}</span>
+    <span class="p">};</span>
+<span class="p">}</span>
+</pre>
+<p>As seen, the AND operation can be implemented very easy.
+The <code>mayProceed</code> method merely provides the composition of two expressions using <code>&amp;&amp;</code>, and the <code>toHumanReadableExpression</code> method generates a string representating this expression.
+Now we can combine expressions using the AND operation, for example:</p>
+<pre class="code literal-block">simpleAuthorizationExpression(true).and(simpleAuthorizationExpression(true))
+</pre>
+<p>And the string view of the code above is:</p>
+<pre class="code literal-block">(TRUE AND TRUE)
+</pre>
+<p>Pretty good.
+The OR and unary NOT operations support can be added without any issues.
+Moreover, we can create even more complex expressions without trivial operations because <code>SimpleAuthorizationExpression</code> does not make much sense.
+For example, an expression that determines if a given user is the root:</p>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">IsRootAuthorizationExpression</span>
+        <span class="kd">implements</span> <span class="n">IAuthorizationExpression</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="n">UserDetails</span> <span class="n">userDetails</span><span class="p">;</span>
+
+    <span class="kd">private</span> <span class="nf">IsRootAuthorizationExpression</span><span class="p">(</span><span class="kd">final</span> <span class="n">UserDetails</span> <span class="n">userDetails</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">userDetails</span> <span class="o">=</span> <span class="n">userDetails</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="n">IAuthorizationExpression</span> <span class="nf">isRoot</span><span class="p">(</span><span class="kd">final</span> <span class="n">UserDetails</span> <span class="n">userDetails</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="n">IsRootAuthorizationExpression</span><span class="p">(</span><span class="n">userDetails</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">mayProceed</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">Objects</span><span class="p">.</span><span class="na">equals</span><span class="p">(</span><span class="n">userDetails</span><span class="p">.</span><span class="na">getUsername</span><span class="p">(),</span> <span class="s">"root"</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">String</span> <span class="nf">toHumanReadableExpression</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="s">"isRoot"</span><span class="p">;</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>Or an expression that determines if the given variable <code>name</code> is banned:</p>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">IsNamePermittedAuthorizationExpression</span>
+        <span class="kd">implements</span> <span class="n">IAuthorizationExpression</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">Collection</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">bannedStrings</span> <span class="o">=</span> <span class="n">emptyList</span><span class="p">();</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">;</span>
+
+    <span class="kd">private</span> <span class="nf">IsNamePermittedAuthorizationExpression</span><span class="p">(</span><span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="n">IAuthorizationExpression</span> <span class="nf">isNamePermitted</span><span class="p">(</span><span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="n">IsNamePermittedAuthorizationExpression</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">mayProceed</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="o">!</span><span class="n">bannedStrings</span><span class="p">.</span><span class="na">contains</span><span class="p">(</span><span class="n">name</span><span class="p">.</span><span class="na">toLowerCase</span><span class="p">());</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">String</span> <span class="nf">toHumanReadableExpression</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="n">StringBuilder</span><span class="p">()</span>
+            <span class="p">.</span><span class="na">append</span><span class="p">(</span><span class="s">"(name NOT IN ("</span><span class="p">)</span>
+            <span class="p">.</span><span class="na">append</span><span class="p">(</span><span class="n">bannedStrings</span><span class="p">.</span><span class="na">stream</span><span class="p">().</span><span class="na">collect</span><span class="p">(</span><span class="n">joining</span><span class="p">()))</span>
+            <span class="p">.</span><span class="na">append</span><span class="p">(</span><span class="s">"))"</span><span class="p">)</span>
+            <span class="p">.</span><span class="na">toString</span><span class="p">();</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>Now the authorization rules can be defined as follows:</p>
+<pre class="code literal-block"><span class="nd">@Nonnull</span>
+<span class="nd">@Override</span>
+<span class="kd">public</span> <span class="n">IAuthorizationExpression</span> <span class="nf">maySayHelloTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">UserDetails</span> <span class="n">principal</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">isNamePermitted</span><span class="p">(</span><span class="n">name</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="nd">@Nonnull</span>
+<span class="nd">@Override</span>
+<span class="kd">public</span> <span class="n">IAuthorizationExpression</span> <span class="nf">maySayGoodByeTo</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">UserDetails</span> <span class="n">principal</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="n">isRoot</span><span class="p">(</span><span class="n">principal</span><span class="p">).</span><span class="na">and</span><span class="p">(</span><span class="n">isNamePermitted</span><span class="p">(</span><span class="n">name</span><span class="p">));</span>
+<span class="p">}</span>
+</pre>
+<p>The code is well readable and it's quite clear what the expressions above do.
+And this is how string views look like:</p>
+<ul>
+<li><code>(name NOT IN ())</code></li>
+<li><code>(isRoot AND (name NOT IN ()))</code></li>
+</ul>
+<p>Looks recognizable, right?</p>
+<h3>Converting <code>@PreAuthorize</code> to <code>IAuthorizationExpression</code> and its string view</h3>
+<p>And now the last remaining thing is to obtain these expressions during runtime.
+Let's assume we can obtain the list of all methods we need (it can be really specific, but we don't really care so far).
+Having such a set of service methods, we can simply run <code>@PreAuthorize</code> expression "virtually" just substituting the variables with some values.
+For example:</p>
+<pre class="code literal-block"><span class="nd">@Service</span>
+<span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">DiscoverService</span>
+        <span class="kd">implements</span> <span class="n">IDiscoverService</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">UserDetails</span> <span class="n">userDetailsMock</span> <span class="o">=</span> <span class="p">(</span><span class="n">UserDetails</span><span class="p">)</span> <span class="n">newProxyInstance</span><span class="p">(</span>
+            <span class="n">DiscoverService</span><span class="p">.</span><span class="na">class</span><span class="p">.</span><span class="na">getClassLoader</span><span class="p">(),</span>
+            <span class="k">new</span> <span class="n">Class</span><span class="o">&lt;?&gt;[]</span><span class="p">{</span> <span class="n">UserDetails</span><span class="p">.</span><span class="na">class</span> <span class="p">},</span>
+            <span class="p">(</span><span class="n">proxy</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">{</span>
+                <span class="k">throw</span> <span class="k">new</span> <span class="n">AssertionError</span><span class="p">(</span><span class="n">method</span><span class="p">);</span>
+            <span class="p">}</span>
+    <span class="p">);</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">Authentication</span> <span class="n">authenticationMock</span> <span class="o">=</span> <span class="p">(</span><span class="n">Authentication</span><span class="p">)</span> <span class="n">newProxyInstance</span><span class="p">(</span>
+            <span class="n">DiscoverService</span><span class="p">.</span><span class="na">class</span><span class="p">.</span><span class="na">getClassLoader</span><span class="p">(),</span>
+            <span class="k">new</span> <span class="n">Class</span><span class="o">&lt;?&gt;[]</span><span class="p">{</span> <span class="n">Authentication</span><span class="p">.</span><span class="na">class</span> <span class="p">},</span>
+            <span class="p">(</span><span class="n">proxy</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">{</span>
+                <span class="k">switch</span> <span class="p">(</span> <span class="n">method</span><span class="p">.</span><span class="na">getName</span><span class="p">()</span> <span class="p">)</span> <span class="p">{</span>
+                <span class="k">case</span> <span class="s">"getPrincipal"</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">userDetailsMock</span><span class="p">;</span>
+                <span class="k">case</span> <span class="s">"isAuthenticated"</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">true</span><span class="p">;</span>
+                <span class="k">default</span><span class="p">:</span>
+                    <span class="k">throw</span> <span class="k">new</span> <span class="n">AssertionError</span><span class="p">(</span><span class="n">method</span><span class="p">);</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+    <span class="p">);</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="n">ApplicationContext</span> <span class="n">applicationContext</span><span class="p">;</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="n">ConversionService</span> <span class="n">conversionService</span><span class="p">;</span>
+
+    <span class="kd">public</span> <span class="nf">DiscoverService</span><span class="p">(</span>
+            <span class="nd">@Autowired</span> <span class="kd">final</span> <span class="n">ApplicationContext</span> <span class="n">applicationContext</span><span class="p">,</span>
+            <span class="nd">@Autowired</span> <span class="kd">final</span> <span class="n">ConversionService</span> <span class="n">conversionService</span>
+    <span class="p">)</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">applicationContext</span> <span class="o">=</span> <span class="n">applicationContext</span><span class="p">;</span>
+        <span class="k">this</span><span class="p">.</span><span class="na">conversionService</span> <span class="o">=</span> <span class="n">conversionService</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="nd">@Nullable</span>
+    <span class="kd">public</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">String</span> <span class="nf">toAuthorizationExpression</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">T</span> <span class="n">object</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">Class</span><span class="o">&lt;?</span> <span class="kd">extends</span> <span class="n">T</span><span class="o">&gt;</span> <span class="n">inspectType</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">methodName</span><span class="p">,</span>
+            <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">Class</span><span class="o">&lt;?&gt;</span><span class="p">...</span> <span class="n">parameterTypes</span><span class="p">)</span>
+            <span class="kd">throws</span> <span class="n">NoSuchMethodException</span> <span class="p">{</span>
+        <span class="kd">final</span> <span class="n">Method</span> <span class="n">method</span> <span class="o">=</span> <span class="n">inspectType</span><span class="p">.</span><span class="na">getMethod</span><span class="p">(</span><span class="n">methodName</span><span class="p">,</span> <span class="n">parameterTypes</span><span class="p">);</span>
+        <span class="kd">final</span> <span class="n">DefaultMethodSecurityExpressionHandler</span> <span class="n">expressionHandler</span> <span class="o">=</span> <span class="n">createMethodSecurityExpressionHandler</span><span class="p">();</span>
+        <span class="kd">final</span> <span class="n">MethodInvocation</span> <span class="n">invocation</span> <span class="o">=</span> <span class="n">createMethodInvocation</span><span class="p">(</span><span class="n">object</span><span class="p">,</span> <span class="n">method</span><span class="p">);</span>
+        <span class="kd">final</span> <span class="n">EvaluationContext</span> <span class="n">evaluationContext</span> <span class="o">=</span> <span class="n">createEvaluationContext</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">expressionHandler</span><span class="p">,</span> <span class="n">invocation</span><span class="p">);</span>
+        <span class="kd">final</span> <span class="n">Object</span> <span class="n">value</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">evaluationContext</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">resolveAsString</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="kd">private</span> <span class="n">DefaultMethodSecurityExpressionHandler</span> <span class="nf">createMethodSecurityExpressionHandler</span><span class="p">()</span> <span class="p">{</span>
+        <span class="kd">final</span> <span class="n">DefaultMethodSecurityExpressionHandler</span> <span class="n">expressionHandler</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DefaultMethodSecurityExpressionHandler</span><span class="p">();</span>
+        <span class="n">expressionHandler</span><span class="p">.</span><span class="na">setApplicationContext</span><span class="p">(</span><span class="n">applicationContext</span><span class="p">);</span>
+        <span class="k">return</span> <span class="n">expressionHandler</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kd">private</span> <span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">MethodInvocation</span> <span class="nf">createMethodInvocation</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">T</span> <span class="n">object</span><span class="p">,</span> <span class="kd">final</span> <span class="n">Method</span> <span class="n">method</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">final</span> <span class="n">Parameter</span><span class="o">[]</span> <span class="n">parameters</span> <span class="o">=</span> <span class="n">method</span><span class="p">.</span><span class="na">getParameters</span><span class="p">();</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="n">SimpleMethodInvocation</span><span class="p">(</span><span class="n">object</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">Stream</span><span class="p">.</span><span class="na">of</span><span class="p">(</span><span class="n">parameters</span><span class="p">).</span><span class="na">map</span><span class="p">(</span><span class="o">&lt;</span><span class="p">...</span><span class="o">&gt;</span><span class="p">).</span><span class="na">toArray</span><span class="p">(</span><span class="n">Object</span><span class="o">[]</span><span class="p">::</span><span class="k">new</span><span class="p">));</span>
+    <span class="p">}</span>
+
+    <span class="kd">private</span> <span class="n">EvaluationContext</span> <span class="nf">createEvaluationContext</span><span class="p">(</span><span class="kd">final</span> <span class="n">Method</span> <span class="n">method</span><span class="p">,</span> <span class="kd">final</span> <span class="n">SecurityExpressionHandler</span><span class="o">&lt;</span><span class="n">MethodInvocation</span><span class="o">&gt;</span> <span class="n">expressionHandler</span><span class="p">,</span>
+            <span class="kd">final</span> <span class="n">MethodInvocation</span> <span class="n">invocation</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">final</span> <span class="n">EvaluationContext</span> <span class="n">decoratedExpressionContext</span> <span class="o">=</span> <span class="n">expressionHandler</span><span class="p">.</span><span class="na">createEvaluationContext</span><span class="p">(</span><span class="n">authenticationMock</span><span class="p">,</span> <span class="n">invocation</span><span class="p">);</span>
+        <span class="kd">final</span> <span class="n">TypeConverter</span> <span class="n">typeConverter</span> <span class="o">=</span> <span class="k">new</span> <span class="n">StandardTypeConverter</span><span class="p">(</span><span class="n">conversionService</span><span class="p">);</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="n">ForwardingEvaluationContext</span><span class="p">()</span> <span class="p">{</span>
+            <span class="nd">@Override</span>
+            <span class="kd">protected</span> <span class="n">EvaluationContext</span> <span class="nf">evaluationContext</span><span class="p">()</span> <span class="p">{</span>
+                <span class="k">return</span> <span class="n">decoratedExpressionContext</span><span class="p">;</span>
+            <span class="p">}</span>
+
+            <span class="nd">@Override</span>
+            <span class="kd">public</span> <span class="n">TypeConverter</span> <span class="nf">getTypeConverter</span><span class="p">()</span> <span class="p">{</span>
+                <span class="k">return</span> <span class="n">typeConverter</span><span class="p">;</span>
+            <span class="p">}</span>
+
+            <span class="nd">@Override</span>
+            <span class="kd">public</span> <span class="n">Object</span> <span class="nf">lookupVariable</span><span class="p">(</span><span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span>
+                <span class="k">return</span> <span class="o">&lt;</span><span class="p">...</span><span class="o">&gt;</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">};</span>
+    <span class="p">}</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="n">Object</span> <span class="nf">evaluate</span><span class="p">(</span><span class="kd">final</span> <span class="n">Method</span> <span class="n">method</span><span class="p">,</span> <span class="kd">final</span> <span class="n">EvaluationContext</span> <span class="n">evaluationContext</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">final</span> <span class="n">ExpressionParser</span> <span class="n">parser</span> <span class="o">=</span> <span class="k">new</span> <span class="n">SpelExpressionParser</span><span class="p">();</span>
+        <span class="kd">final</span> <span class="n">PreAuthorize</span> <span class="n">preAuthorizeAnnotation</span> <span class="o">=</span> <span class="n">method</span><span class="p">.</span><span class="na">getAnnotation</span><span class="p">(</span><span class="n">PreAuthorize</span><span class="p">.</span><span class="na">class</span><span class="p">);</span>
+        <span class="kd">final</span> <span class="n">Expression</span> <span class="n">expression</span> <span class="o">=</span> <span class="n">parser</span><span class="p">.</span><span class="na">parseExpression</span><span class="p">(</span><span class="n">preAuthorizeAnnotation</span><span class="p">.</span><span class="na">value</span><span class="p">());</span>
+        <span class="k">return</span> <span class="n">expression</span><span class="p">.</span><span class="na">getValue</span><span class="p">(</span><span class="n">evaluationContext</span><span class="p">,</span> <span class="n">Object</span><span class="p">.</span><span class="na">class</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="n">String</span> <span class="nf">resolveAsString</span><span class="p">(</span><span class="kd">final</span> <span class="n">Object</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span> <span class="n">value</span> <span class="k">instanceof</span> <span class="n">IAuthorizationExpression</span> <span class="p">)</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="p">((</span><span class="n">IAuthorizationExpression</span><span class="p">)</span> <span class="n">value</span><span class="p">).</span><span class="na">toHumanReadableExpression</span><span class="p">();</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">String</span><span class="p">.</span><span class="na">valueOf</span><span class="p">(</span><span class="n">value</span><span class="p">);</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>The code above is slightly more complex, but it's not difficult in fact.
+It might be not very simple to resolve missing variables for the expressions (like <code>#name</code> in the examples above).
+<code>&lt;...&gt;</code> is a placeholder to map arguments to the parameters.
+Generally speaking, <code>null</code> might be acceptable too, but it will not work in some cases for known reasons.
+And one more not that good thing: it's necessary to create <code>ForwardingEvaluationContext</code> similarly to the way how <code>ForwardingStandardEvaluationContext</code> was created above.</p>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">ForwardingEvaluationContext</span>
+        <span class="kd">implements</span> <span class="n">EvaluationContext</span> <span class="p">{</span>
+
+    <span class="kd">protected</span> <span class="kd">abstract</span> <span class="n">EvaluationContext</span> <span class="nf">evaluationContext</span><span class="p">();</span>
+
+    <span class="c1">// @formatter:off</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">TypedValue</span> <span class="nf">getRootObject</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">getRootObject</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">ConstructorResolver</span><span class="o">&gt;</span> <span class="nf">getConstructorResolvers</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">getConstructorResolvers</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">MethodResolver</span><span class="o">&gt;</span> <span class="nf">getMethodResolvers</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">getMethodResolvers</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">PropertyAccessor</span><span class="o">&gt;</span> <span class="nf">getPropertyAccessors</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">getPropertyAccessors</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">TypeLocator</span> <span class="nf">getTypeLocator</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">getTypeLocator</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">TypeConverter</span> <span class="nf">getTypeConverter</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">getTypeConverter</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">TypeComparator</span> <span class="nf">getTypeComparator</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">getTypeComparator</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">OperatorOverloader</span> <span class="nf">getOperatorOverloader</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">getOperatorOverloader</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">BeanResolver</span> <span class="nf">getBeanResolver</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">getBeanResolver</span><span class="p">();</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setVariable</span><span class="p">(</span><span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">,</span> <span class="kd">final</span> <span class="n">Object</span> <span class="n">value</span><span class="p">)</span> <span class="p">{</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">setVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">);</span> <span class="p">}</span>
+    <span class="nd">@Override</span> <span class="kd">public</span> <span class="n">Object</span> <span class="nf">lookupVariable</span><span class="p">(</span><span class="kd">final</span> <span class="n">String</span> <span class="n">name</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="n">evaluationContext</span><span class="p">().</span><span class="na">lookupVariable</span><span class="p">(</span><span class="n">name</span><span class="p">);</span> <span class="p">}</span>
+    <span class="c1">// @formatter:on</span>
+
+<span class="p">}</span>
+</pre>
+<p>So that's all: we have just added custom types support to <code>@PreAuthorize</code> expressions operands or results, and now we can provide convenient human-readable string representations for these expressions.</p>
+<h3>What's remaining behind the scenes</h3>
+<p>In fact, as it was told above, my application authorization rules are specified in the controller methods, not in the services.
+Since I use <a href="http://resthub.org/springmvc-router/">Springmvc-router</a>, obtaining the full list of authorized methods is not an issue.
+As far as I know, it's easy to do using standard facilities, and it would let to inspect services and other components rather than just controllers.
+So the way of obtaining the <code>@PreAuthorize</code>-annotatated methods is up to you.</p>
+<p>I don't like public constructors as well and I always prefer static factory methods because:</p>
+<ul>
+<li>hide the real return type;</li>
+<li>have just a single constructor that only assigns parameters to fields;</li>
+<li>return cached objects and not always create new objects.</li>
+</ul>
+<p>“Effective Java” -- is a very nice book.
+Using <code>final</code> and nullability annotaions is a matter of habit, and I would like to think it's a habit of good manners.</p>
+<p>And the last thing.
+I prefer to use merely method invocations in <code>@PreAuthorize</code> expressions rather than complex expressions because of several reasons.
+First, it allows to associate a certain name to a specific authorization rule, and to avoid string constants for some cases which you'd face with (in my opinion, no string contants are necessary here).
+Second, it allows to group authorization rules into some groups and use them respectively.
+Third, authorization rules expressions may be too long and it would be harder to maintain <code>@PreAuthorize</code> expressions.
+Moreover, the compiler will find trivial errors in the compile time.
+And your favorite IDE will hightlight these methods better than string expressions.</p>
+</div>
+        </div>
+        
+        <ul class="pager hidden-print">
+<li class="previous">
+                <a href="../2016-08-06-java-8-libraries-and-android-applications-using-maven/" rel="prev" title="Java 8 libraries and Android applications using Maven">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../2016-08-25-cracking-jewels-saga-for-android/" rel="next" title="Cracking Jewels Saga for Android">Next post</a>
+            </li>
+        </ul>
+<div id="disqus_thread"></div>
+        <script>
+        var disqus_shortname ="lsh-blog",
+            disqus_url="https://lyubomyr-shaydariv.github.io/posts/2016-08-07-spring-security-preauthorize-annotation-custom-types-and-inspectable-dsl-support/",
+        disqus_title="Spring Security @PreAuthorize annotation custom types and inspectable DSL support",
+        disqus_identifier="cache/posts/2016-08-07-spring-security-preauthorize-annotation-custom-types-and-inspectable-dsl-support.html",
+        disqus_config = function () {
+            this.language = "en";
+        };
+        (function() {
+            var dsq = document.createElement('script'); dsq.async = true;
+            dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script><noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+</noscript>
+    <a href="https://disqus.com" class="dsq-brlink" rel="nofollow">Comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+        
+    
+
+
+    </div>
+
+        
+       <script>var disqus_shortname="lsh-blog";(function(){var a=document.createElement("script");a.async=true;a.src="https://"+disqus_shortname+".disqus.com/count.js";(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(a)}());</script><footer id="footer"><p>Contents © 2021         <a href="mailto:">Lyubomyr Shaydariv</a> - Powered by         <a href="https://getnikola.com" rel="nofollow">Nikola</a>         </p>
+            
+        </footer>
+</div>
+    </section><noscript>
+<style type="text/css">
+	#google-analytics-no-js-placeholder {
+		background: url("http://nojsstats.appspot.com/UA-84297561-1/lyubomyr-shaydariv.github.io");
+	}
+</style>
+<div id="google-analytics-no-js-placeholder"></div>
+</noscript>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-84297561-1', 'auto');
+  ga('send', 'pageview');
+</script><script src="../../assets/js/all-nocdn.js" type="text/javascript"></script><script type="text/javascript">
+            $(function(){
+                $('.timeago').timeago();
+            });
+        </script>
+</body>
+</html>

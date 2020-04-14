@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Sequential Mockito verifications refactoring with fluent interfaces | lsh::blog</title>
+<link href="../../assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="https://lyubomyr-shaydariv.github.io/posts/2016-09-23-sequential-mockito-verifications-refactoring-with-fluent-interfaces/">
+<link rel="icon" href="../../favicon.png" sizes="16x16">
+<!--[if lt IE 9]><script src="/assets/js/html5.js"></script><![endif]--><meta name="author" content="Lyubomyr Shaydariv">
+<meta property="og:site_name" content="lsh::blog">
+<meta property="og:title" content="Sequential Mockito verifications refactoring with fluent interfaces">
+<meta property="og:url" content="https://lyubomyr-shaydariv.github.io/posts/2016-09-23-sequential-mockito-verifications-refactoring-with-fluent-interfaces/">
+<meta property="og:description" content="This article was originally written in Russian and published on September 12, 2016 at Habrahabr
+
+Static methods have one powerful and not very desirable feature: they can be invoked from any place of ">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2016-09-23T18:41:00+03:00">
+<meta property="article:tag" content="java">
+<meta property="article:tag" content="java-8">
+<meta property="article:tag" content="mockito">
+</head>
+<body>
+    <section class="social"><ul>
+<li><a href="../../index.html" title="home"><i class="icon-home"></i></a></li>
+            <li><a href="../../archive.html" title="archive"><i class="icon-folder-open-alt"></i></a></li>
+            <li><a href="../../categories/index.html" title="tags"><i class="icon-tags"></i></a></li>
+            <li><a href="../../rss.xml" title="RSS feed"><i class="icon-rss"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/lyubomyr-shaydariv-7b4bbb21/" title="me @ LinkedIn"><i class="icon-user"></i></a></li>
+            <li><a href="https://stackexchange.com/users/55617/lyubomyr-shaydariv" title="me @ StackExchange"><i class="icon-stackexchange"></i></a></li>
+            <li><a href="https://github.com/lyubomyr-shaydariv" title="me @ Github"><i class="icon-github"></i></a></li>
+            <li><a href="../../pages/about-me/index.html" title="about me"><i class="icon-smile"></i></a></li>
+
+        </ul></section><section class="page-content"><div class="content" rel="main">
+            
+    <div class="post">
+    
+    <h1 class="p-name entry-title" itemprop="headline name">Sequential Mockito verifications refactoring with fluent interfaces</h1>
+
+        <div class="meta">
+            <div class="authordate">
+                <time class="timeago" datetime="2016-09-23T18:41:00+03:00">2016-09-23 18:41</time>
+            
+
+            
+          |  
+        <a href="index.md" id="sourcelink">Source</a>
+
+            </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="../../categories/java/" rel="tag">java</a></li>
+           <li><a class="tag p-category" href="../../categories/java-8/" rel="tag">java-8</a></li>
+           <li><a class="tag p-category" href="../../categories/mockito/" rel="tag">mockito</a></li>
+        </ul>
+</div>
+
+        </div>
+        <div class="body">
+            <div>
+<blockquote>
+<p>This article was originally written in Russian and published on September 12, 2016 at <a href="https://habrahabr.ru/post/309752/">Habrahabr</a></p>
+</blockquote>
+<p>Static methods have one powerful and not very desirable feature: they can be invoked from any place of the code, and they also can't really dictate the order of such invocations.
+Usually such control is really important, but sometimes the real order does not make much sense.
+For example, assertions and verifications in unit tests often do not require to be executed in strict order.
+To ensure that all verifications are done, <a href="http://mockito.org/">Mockito</a> provides a static method named <code>verifyNoMoreInteractions(...)</code>.
+Sometimes, accidentally, this method can be invoked before the last <code>verify(...)</code> is invoked so a bitter "red" test will be the result.
+But what if delegate the verification order check to the compiler?</p>
+<!-- TEASER_END -->
+
+<p>Let's consider that a unit has the following test:</p>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">AbstractStructuredLoggingTest</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="n">IStructuredLogger</span> <span class="n">mockStructuredLogger</span> <span class="o">=</span> <span class="n">mock</span><span class="p">(</span><span class="n">IStructuredLogger</span><span class="p">.</span><span class="na">class</span><span class="p">);</span>
+
+    <span class="kd">private</span> <span class="n">T</span> <span class="n">unit</span><span class="p">;</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="kd">protected</span> <span class="kd">abstract</span> <span class="n">T</span> <span class="nf">createUnit</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="n">IStructuredLogger</span> <span class="n">logger</span><span class="p">);</span>
+
+    <span class="kd">protected</span> <span class="kd">final</span> <span class="n">IStructuredLogger</span> <span class="nf">getMockStructuredLogger</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">mockStructuredLogger</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="kd">protected</span> <span class="kd">final</span> <span class="n">T</span> <span class="nf">getUnit</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">unit</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Before</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">initializeMockStructuredLogger</span><span class="p">()</span> <span class="p">{</span>
+        <span class="c1">// Setting up the mock, `selfAnswer()` -- is a Mockito answer returning the mock itself</span>
+        <span class="n">when</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">.</span><span class="na">begin</span><span class="p">()).</span><span class="na">thenAnswer</span><span class="p">(</span><span class="n">selfAnswer</span><span class="p">());</span>
+        <span class="n">when</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">any</span><span class="p">(</span><span class="n">LogEntryKey</span><span class="p">.</span><span class="na">class</span><span class="p">),</span> <span class="n">any</span><span class="p">(</span><span class="n">Object</span><span class="p">.</span><span class="na">class</span><span class="p">))).</span><span class="na">thenAnswer</span><span class="p">(</span><span class="n">selfAnswer</span><span class="p">());</span>
+        <span class="n">when</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">.</span><span class="na">log</span><span class="p">(</span><span class="n">any</span><span class="p">(</span><span class="n">Scope</span><span class="p">.</span><span class="na">class</span><span class="p">),</span> <span class="n">any</span><span class="p">(</span><span class="n">Severity</span><span class="p">.</span><span class="na">class</span><span class="p">),</span> <span class="n">any</span><span class="p">(</span><span class="n">String</span><span class="p">.</span><span class="na">class</span><span class="p">))).</span><span class="na">thenAnswer</span><span class="p">(</span><span class="n">selfAnswer</span><span class="p">());</span>
+        <span class="n">when</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">.</span><span class="na">end</span><span class="p">()).</span><span class="na">thenAnswer</span><span class="p">(</span><span class="n">selfAnswer</span><span class="p">());</span>
+        <span class="c1">// Injecting the logger to the unit (at least, formally). It doesn't really matter how it is under the hood</span>
+        <span class="n">unit</span> <span class="o">=</span> <span class="n">createUnit</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nd">@After</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">resetMockStructuredLogger</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">try</span> <span class="p">{</span>
+            <span class="c1">// Verify that are no more unverified mock interactions</span>
+            <span class="n">verifyNoMoreInteractions</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">);</span>
+        <span class="p">}</span> <span class="k">finally</span> <span class="p">{</span>
+            <span class="c1">// Just in case, reset the mock since the errors would affect as a cascade...</span>
+            <span class="n">reset</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">AdministratorServiceStructuredLoggingTest</span>
+        <span class="kd">extends</span> <span class="n">AbstractStructuredLoggingTest</span><span class="o">&lt;</span><span class="n">IAdministratorService</span><span class="o">&gt;</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">USERNAME</span> <span class="o">=</span> <span class="s">"john.doe"</span><span class="p">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">PASSWORD</span> <span class="o">=</span> <span class="s">"opZK2lkXa"</span><span class="p">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">FIRST_NAME</span> <span class="o">=</span> <span class="s">"john"</span><span class="p">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">LAST_NAME</span> <span class="o">=</span> <span class="s">"doe"</span><span class="p">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">EMAIL</span> <span class="o">=</span> <span class="s">"john.doe@acme.com"</span><span class="p">;</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="kd">protected</span> <span class="n">IAdministratorService</span> <span class="nf">createUnit</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">IStructuredLogger</span> <span class="n">logger</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">createAdministratorService</span><span class="p">(</span><span class="n">logger</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Test</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">testCreate</span><span class="p">()</span> <span class="p">{</span>
+        <span class="kd">final</span> <span class="n">T</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">getUnit</span><span class="p">();</span>
+        <span class="n">unit</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="n">USERNAME</span><span class="p">,</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="n">FIRST_NAME</span><span class="p">,</span> <span class="n">LAST_NAME</span><span class="p">,</span> <span class="n">EMAIL</span><span class="p">);</span>
+        <span class="kd">final</span> <span class="n">IStructuredLogger</span> <span class="n">mockStructuredLogger</span> <span class="o">=</span> <span class="n">getMockStructuredLogger</span><span class="p">();</span>
+        <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">OPERATION_CALLER_CLASS</span><span class="p">),</span> <span class="n">any</span><span class="p">(</span><span class="n">IAdministratorService</span><span class="p">.</span><span class="na">class</span><span class="p">));</span>
+        <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">OPERATION_CALLER_METHOD</span><span class="p">),</span> <span class="n">any</span><span class="p">(</span><span class="n">Method</span><span class="p">.</span><span class="na">class</span><span class="p">));</span>
+        <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">OPERATION_TYPE</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">CREATE</span><span class="p">));</span>
+        <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">OPERATION_OBJECT_TYPE</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">ADMINISTRATOR</span><span class="p">));</span>
+        <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">VALUE_ADMINISTRATOR_NAME</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">USERNAME</span><span class="p">));</span>
+        <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">VALUE_FIRST_NAME</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">FIRST_NAME</span><span class="p">));</span>
+        <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">VALUE_LAST_NAME</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">LAST_NAME</span><span class="p">));</span>
+        <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">VALUE_EMAIL</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">EMAIL</span><span class="p">));</span>
+        <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">log</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">APP_DEV</span><span class="p">),</span> <span class="n">eq</span><span class="p">(</span><span class="n">INFO</span><span class="p">),</span> <span class="n">any</span><span class="p">(</span><span class="n">String</span><span class="p">.</span><span class="na">class</span><span class="p">));</span>
+        <span class="n">verifyNoMoreInteractions</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">);</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>It's not hard to get what is tested in the test: it just tests if the given unit has invoked all important method from the structured logger.
+Since the test ends with <code>verifyNoMockInteractions(...)</code>, it's ensured that the mock does not have unverified methods.
+By the way, the structured logger interface is extremely straight-forware, but I'll put it somewhat cut because it was taken from a real project.</p>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">IStructuredLogger</span> <span class="p">{</span>
+
+    <span class="c1">// This method does not participate the testing, but it makes sense because it can mark the very beginning and the very end of a logged message.</span>
+    <span class="nd">@Nonnull</span>
+    <span class="n">IStructuredLogger</span> <span class="nf">begin</span><span class="p">()</span>
+            <span class="kd">throws</span> <span class="n">IllegalStateException</span><span class="p">;</span>
+
+    <span class="c1">// Fills up a logged message that should be logged.</span>
+    <span class="c1">// key -- an enumeration (enum) of all possible logged message keys (OPERATION_CALLER_CLASS, VALUE_FIRST_NAME и т.д.)</span>
+    <span class="c1">// value -- arbitrary argument</span>
+    <span class="nd">@Nonnull</span>
+    <span class="n">IStructuredLogger</span> <span class="nf">put</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="n">LogEntryKey</span> <span class="n">key</span><span class="p">,</span> <span class="nd">@Nullable</span> <span class="n">Object</span> <span class="n">value</span><span class="p">)</span>
+            <span class="kd">throws</span> <span class="n">IllegalStateException</span><span class="p">;</span>
+
+    <span class="c1">// Writes the accumulated message to a log.</span>
+    <span class="c1">// scope -- log type enumeration (for example, APP_DEV -- defines a log entry both for user and dev logs)</span>
+    <span class="c1">// severity -- another logging threshold enumeration (ERROR, INFO and so forth)</span>
+    <span class="c1">// message -- arbitrary human-readable message</span>
+    <span class="nd">@Nonnull</span>
+    <span class="n">IStructuredLogger</span> <span class="nf">log</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="n">Scope</span> <span class="n">scope</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="n">Severity</span> <span class="n">severity</span><span class="p">,</span> <span class="nd">@Nonnull</span> <span class="n">String</span> <span class="n">message</span><span class="p">)</span>
+            <span class="kd">throws</span> <span class="n">IllegalStateException</span><span class="p">;</span>
+
+    <span class="c1">// The begin() counter-part</span>
+    <span class="nd">@Nonnull</span>
+    <span class="n">IStructuredLogger</span> <span class="nf">end</span><span class="p">()</span>
+            <span class="kd">throws</span> <span class="n">IllegalStateException</span><span class="p">;</span>
+
+<span class="p">}</span>
+</pre>
+<p>As it was said above, static methods fill up the test above, but does not guarantee that verifications of all kinds are performed.
+And, for sure, such a test can fail.
+I assume that the following criteria are successful if it's possible to:</p>
+<ul>
+<li>... determine what class is a log event generator;</li>
+<li>... determine the log event object and subject;</li>
+<li>... determine the logged action arguments;</li>
+<li>... determine the target logs;</li>
+<li>... and check if the structured logged is not used for anything else.</li>
+</ul>
+<p>Actually, these are well-defined requirements that should be executed in a strict order.
+To resolve this issue, one might use the <a href="https://en.wikipedia.org/wiki/Strategy_pattern">Strategy</a> design pattern that could declare an interface for every type of check, and each method would test its own loggin aspect.
+<a href="https://en.wikipedia.org/wiki/Template_method_pattern">Template method</a> is an alternative
+But it's obiviously that such approachs are pretty cumbersome and are not very robust in separating the logging aspects across the methods.
+This would also sacrifice the readability and this is what I would not do.</p>
+<p>About five years ago I came across an article that describes a <a href="https://en.wikipedia.org/wiki/Builder_pattern">Builder</a> design pattern implementation that really guaranteed that building a complex object will be done in strict order.
+Shortly speaking, some builder object required the <code>setFoo()</code> method to be invoked first, then the next method would be <code>setBar()</code>, and the final method is <code>build()</code> only.
+And any other order is prohibited because the order is controlled by the compiler!</p>
+<p>A similar approach, that's implemented in a slightly different way, could be used to simplify the tests that must be executed in strict order, and this wouldn't require a template method imlpementation.
+Having formal criteria described above, we could create a set of interfaces that could concatenate such transitions.
+<a href="https://ru.wikipedia.org/wiki/Fluent_interface">Fluent interface</a> is a convenient way to define a graceful test chain.</p>
+<pre class="code literal-block"><span class="c1">// This step verifies which unit and which unit method a log message is associated to</span>
+<span class="nd">@FunctionalInterface</span>
+<span class="kd">public</span> <span class="kd">interface</span> <span class="nc">IOperationCallerVerificationStep</span> <span class="p">{</span>
+
+    <span class="c1">// unitMatcherSupplier -- returns a unit</span>
+    <span class="c1">// methodMatcherSupplier -- returns a method that is expected to invoke a log</span>
+    <span class="c1">// This method makes a few checks, and if there were no errors, then it creates an object for the next step</span>
+    <span class="nd">@Nonnull</span>
+    <span class="n">IOperationTypeVerificationStep</span> <span class="nf">withOperationCaller</span><span class="p">(</span>
+            <span class="nd">@Nonnull</span> <span class="n">Supplier</span><span class="o">&lt;?&gt;</span> <span class="n">unitMatcherSupplier</span><span class="p">,</span>
+            <span class="nd">@Nonnull</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">Method</span><span class="o">&gt;</span> <span class="n">methodMatcherSupplier</span>
+    <span class="p">);</span>
+
+    <span class="c1">// By default, let's consider that we don't really care about the method that invoked the logger. This is</span>
+    <span class="c1">// pretty controversial, because it may even damage the idea of unit tests here. But for the systems with</span>
+    <span class="c1">// automatic logging (using an annotation processing mechanism, not to be confused with [APT](http://docs.oracle.com/javase/7/docs/technotes/guides/apt/))</span>
+    <span class="c1">// it does not really matter. At least, logs automatic generation allows to create the method object</span>
+    <span class="c1">// in convenient way, and that is not that robust as manual logging.</span>
+    <span class="nd">@Nonnull</span>
+    <span class="k">default</span> <span class="n">IOperationTypeVerificationStep</span> <span class="nf">withOperationCaller</span><span class="p">(</span>
+            <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">Supplier</span><span class="o">&lt;?&gt;</span> <span class="n">unitMatcherSupplier</span>
+    <span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">withOperationCaller</span><span class="p">(</span><span class="n">unitMatcherSupplier</span><span class="p">,</span> <span class="p">()</span> <span class="o">-&gt;</span> <span class="n">any</span><span class="p">(</span><span class="n">Method</span><span class="p">.</span><span class="na">class</span><span class="p">));</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<pre class="code literal-block"><span class="c1">// This step verifies the object and the subject</span>
+<span class="nd">@FunctionalInterface</span>
+<span class="kd">public</span> <span class="kd">interface</span> <span class="nc">IOperationTypeVerificationStep</span> <span class="p">{</span>
+
+    <span class="c1">// operationTypeMatcherSupplier -- returns the type of an operation</span>
+    <span class="c1">// objectTypeMatcherSupplier -- returns athe type of an object that must be logged</span>
+    <span class="nd">@Nonnull</span>
+    <span class="n">IValueVerificationStep</span> <span class="nf">withOperationType</span><span class="p">(</span>
+            <span class="nd">@Nonnull</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">OperationType</span><span class="o">&gt;</span> <span class="n">operationTypeMatcherSupplier</span><span class="p">,</span>
+            <span class="nd">@Nonnull</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">ObjectType</span><span class="o">&gt;</span> <span class="n">objectTypeMatcherSupplier</span>
+    <span class="p">);</span>
+
+<span class="p">}</span>
+</pre>
+<pre class="code literal-block"><span class="c1">// A step verifying the log context data (those that were passed to the unit)</span>
+<span class="kd">public</span> <span class="kd">interface</span> <span class="nc">IValueVerificationStep</span> <span class="p">{</span>
+
+    <span class="c1">// logEntryKeyMatcherSupplier -- возвращает тип ключа для структурированного сообщения</span>
+    <span class="c1">// valueMatcherSupplier -- arbitrary argument</span>
+    <span class="c1">// By the way, this method does not return a next step object, because it's variadic thus a few</span>
+    <span class="c1">// invocations might be executed step by step since the number of such steps is not known before.</span>
+    <span class="nd">@Nonnull</span>
+    <span class="n">IValueVerificationStep</span> <span class="nf">withValue</span><span class="p">(</span>
+            <span class="nd">@Nonnull</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">LogEntryKey</span><span class="o">&gt;</span> <span class="n">logEntryKeyMatcherSupplier</span><span class="p">,</span>
+            <span class="nd">@Nonnull</span> <span class="n">Supplier</span><span class="o">&lt;?&gt;</span> <span class="n">valueMatcherSupplier</span>
+    <span class="p">);</span>
+
+    <span class="c1">// A pretty synthetic method. The only need is making a transition to the next step.</span>
+    <span class="nd">@Nonnull</span>
+    <span class="n">ILogVerificationStep</span> <span class="nf">then</span><span class="p">();</span>
+
+<span class="p">}</span>
+</pre>
+<pre class="code literal-block"><span class="c1">// The final step that verifies to which log a message was wrote to and what's the log level</span>
+<span class="nd">@FunctionalInterface</span>
+<span class="kd">public</span> <span class="kd">interface</span> <span class="nc">ILogVerificationStep</span> <span class="p">{</span>
+
+    <span class="c1">// scopeMatcherSupplier -- the logger type</span>
+    <span class="c1">// severityMatcherSupplier -- the log message level/severity</span>
+    <span class="c1">// messageMatcherSupplier -- arbitrary message</span>
+    <span class="c1">// This is the final verification so this method does not need to return a value</span>
+    <span class="kt">void</span> <span class="nf">withLog</span><span class="p">(</span>
+            <span class="nd">@Nonnull</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">Scope</span><span class="o">&gt;</span> <span class="n">scopeMatcherSupplier</span><span class="p">,</span>
+            <span class="nd">@Nonnull</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">Severity</span><span class="o">&gt;</span> <span class="n">severityMatcherSupplier</span><span class="p">,</span>
+            <span class="nd">@Nonnull</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">String</span><span class="o">&gt;</span> <span class="n">messageMatcherSupplier</span>
+    <span class="p">);</span>
+
+    <span class="c1">// We don't care the message here</span>
+    <span class="k">default</span> <span class="kt">void</span> <span class="nf">withLog</span><span class="p">(</span>
+            <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">Scope</span><span class="o">&gt;</span> <span class="n">scopeMatcherSupplier</span><span class="p">,</span>
+            <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">Severity</span><span class="o">&gt;</span> <span class="n">severityMatcherSupplier</span>
+    <span class="p">)</span> <span class="p">{</span>
+        <span class="n">withLog</span><span class="p">(</span><span class="n">scopeMatcherSupplier</span><span class="p">,</span> <span class="n">severityMatcherSupplier</span><span class="p">,</span> <span class="p">()</span> <span class="o">-&gt;</span> <span class="n">any</span><span class="p">(</span><span class="n">String</span><span class="p">.</span><span class="na">class</span><span class="p">));</span>
+    <span class="p">}</span>
+
+    <span class="c1">// And this method considers that a log message is written to two loggers (APP and DEV)</span>
+    <span class="k">default</span> <span class="kt">void</span> <span class="nf">withLog</span><span class="p">(</span>
+            <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">Severity</span><span class="o">&gt;</span> <span class="n">severityMatcherSupplier</span>
+    <span class="p">)</span> <span class="p">{</span>
+        <span class="n">withLog</span><span class="p">(()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">APP_DEV</span><span class="p">),</span> <span class="n">severityMatcherSupplier</span><span class="p">,</span> <span class="p">()</span> <span class="o">-&gt;</span> <span class="n">any</span><span class="p">(</span><span class="n">String</span><span class="p">.</span><span class="na">class</span><span class="p">));</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>Almost all interfaces are marked with <code>@FunctionalInterface</code>, but it's not a requirement though.
+Nevertheless, the "variadic" interface has two methods, because there should be a way of terminating the logged operation arguments checks.
+So, the original test code now can transform into:</p>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">abstract</span> <span class="kd">class</span> <span class="nc">AbstractStructuredLoggingTest</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="kd">final</span> <span class="n">IStructuredLogger</span> <span class="n">mockStructuredLogger</span> <span class="o">=</span> <span class="n">mock</span><span class="p">(</span><span class="n">IStructuredLogger</span><span class="p">.</span><span class="na">class</span><span class="p">);</span>
+
+    <span class="kd">private</span> <span class="n">T</span> <span class="n">unit</span><span class="p">;</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="kd">protected</span> <span class="kd">abstract</span> <span class="n">T</span> <span class="nf">createUnit</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="n">IStructuredLogger</span> <span class="n">logger</span><span class="p">);</span>
+
+    <span class="c1">// Surprise-surprise! The method is no longer necessary, because all checks are encapsulated in this class.</span>
+    <span class="cm">/*protected final IStructuredLogger getMockStructuredLogger() {</span>
+<span class="cm">        return mockStructuredLogger;</span>
+<span class="cm">    }*/</span>
+
+    <span class="kd">protected</span> <span class="kd">final</span> <span class="n">T</span> <span class="nf">getUnit</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">unit</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Before</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">initializeMockStructuredLogger</span><span class="p">()</span> <span class="p">{</span>
+        <span class="n">when</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">.</span><span class="na">begin</span><span class="p">()).</span><span class="na">thenAnswer</span><span class="p">(</span><span class="n">selfAnswer</span><span class="p">());</span>
+        <span class="n">when</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">any</span><span class="p">(</span><span class="n">LogEntryKey</span><span class="p">.</span><span class="na">class</span><span class="p">),</span> <span class="n">any</span><span class="p">(</span><span class="n">Object</span><span class="p">.</span><span class="na">class</span><span class="p">))).</span><span class="na">thenAnswer</span><span class="p">(</span><span class="n">selfAnswer</span><span class="p">());</span>
+        <span class="n">when</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">.</span><span class="na">log</span><span class="p">(</span><span class="n">any</span><span class="p">(</span><span class="n">Scope</span><span class="p">.</span><span class="na">class</span><span class="p">),</span> <span class="n">any</span><span class="p">(</span><span class="n">Severity</span><span class="p">.</span><span class="na">class</span><span class="p">),</span> <span class="n">any</span><span class="p">(</span><span class="n">String</span><span class="p">.</span><span class="na">class</span><span class="p">))).</span><span class="na">thenAnswer</span><span class="p">(</span><span class="n">selfAnswer</span><span class="p">());</span>
+        <span class="n">when</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">.</span><span class="na">end</span><span class="p">()).</span><span class="na">thenAnswer</span><span class="p">(</span><span class="n">selfAnswer</span><span class="p">());</span>
+        <span class="n">unit</span> <span class="o">=</span> <span class="n">createUnit</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nd">@After</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">resetMockStructuredLogger</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">try</span> <span class="p">{</span>
+            <span class="n">verifyNoMoreInteractions</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">);</span>
+        <span class="p">}</span> <span class="k">finally</span> <span class="p">{</span>
+            <span class="n">reset</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">);</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="c1">// This is the method taht creates the very first step of logs verification. It encapsulates all</span>
+    <span class="c1">// necessary checks. The code looks somewhat clumsy, but it works really good. Lambda expressions</span>
+    <span class="c1">// can make the things somewhat simpler. Before a next verification step is invoked, the verify(...)</span>
+    <span class="c1">// methods verify the mock. The last step does not invoke verifyNoMoreInteractions because the latter</span>
+    <span class="c1">// is invoked for every test automatically.</span>
+    <span class="kd">protected</span> <span class="kd">final</span> <span class="n">IOperationCallerVerificationStep</span> <span class="nf">verifyLog</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">unitMatcherSupplier</span><span class="p">,</span> <span class="n">methodMatcherSupplier</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">{</span>
+            <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">OPERATION_CALLER_CLASS</span><span class="p">),</span> <span class="n">unitMatcherSupplier</span><span class="p">.</span><span class="na">get</span><span class="p">());</span>
+            <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">OPERATION_CALLER_METHOD</span><span class="p">),</span> <span class="n">methodMatcherSupplier</span><span class="p">.</span><span class="na">get</span><span class="p">());</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">IOperationTypeVerificationStep</span><span class="p">)</span> <span class="p">(</span><span class="n">operationTypeMatcherSupplier</span><span class="p">,</span> <span class="n">objectTypeMatcherSupplier</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">{</span>
+                <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">OPERATION_TYPE</span><span class="p">),</span> <span class="n">operationTypeMatcherSupplier</span><span class="p">.</span><span class="na">get</span><span class="p">());</span>
+                <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">eq</span><span class="p">(</span><span class="n">OPERATION_OBJECT_TYPE</span><span class="p">),</span> <span class="n">objectTypeMatcherSupplier</span><span class="p">.</span><span class="na">get</span><span class="p">());</span>
+                <span class="k">return</span> <span class="k">new</span> <span class="n">IValueVerificationStep</span><span class="p">()</span> <span class="p">{</span>
+                    <span class="nd">@Nonnull</span>
+                    <span class="nd">@Override</span>
+                    <span class="kd">public</span> <span class="n">IValueVerificationStep</span> <span class="nf">withValue</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">Supplier</span><span class="o">&lt;</span><span class="n">LogEntryKey</span><span class="o">&gt;</span> <span class="n">logEntryKeyMatcherSupplier</span><span class="p">,</span>
+                            <span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">Supplier</span><span class="o">&lt;?&gt;</span> <span class="n">valueMatcherSupplier</span><span class="p">)</span> <span class="p">{</span>
+                        <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">put</span><span class="p">(</span><span class="n">logEntryKeyMatcherSupplier</span><span class="p">.</span><span class="na">get</span><span class="p">(),</span> <span class="n">valueMatcherSupplier</span><span class="p">.</span><span class="na">get</span><span class="p">());</span>
+                        <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+                    <span class="p">}</span>
+
+                    <span class="nd">@Nonnull</span>
+                    <span class="nd">@Override</span>
+                    <span class="kd">public</span> <span class="n">ILogVerificationStep</span> <span class="nf">then</span><span class="p">()</span> <span class="p">{</span>
+                        <span class="k">return</span> <span class="p">(</span><span class="n">scopeMatcherSupplier</span><span class="p">,</span> <span class="n">severityMatcherSupplier</span><span class="p">,</span> <span class="n">messageMatcherSupplier</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">verify</span><span class="p">(</span><span class="n">mockStructuredLogger</span><span class="p">).</span><span class="na">log</span><span class="p">(</span><span class="n">scopeMatcherSupplier</span><span class="p">.</span><span class="na">get</span><span class="p">(),</span> <span class="n">severityMatcherSupplier</span><span class="p">.</span><span class="na">get</span><span class="p">(),</span> <span class="n">messageMatcherSupplier</span><span class="p">.</span><span class="na">get</span><span class="p">());</span>
+                    <span class="p">}</span>
+                <span class="p">};</span>
+            <span class="p">};</span>
+        <span class="p">};</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>So, here is how a concrete test gets simpler and why the base test got more complex:</p>
+<pre class="code literal-block"><span class="kd">public</span> <span class="kd">final</span> <span class="kd">class</span> <span class="nc">AdministratorServiceStructuredLoggingTest</span>
+        <span class="kd">extends</span> <span class="n">AbstractStructuredLoggingTest</span> <span class="p">{</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">USERNAME</span> <span class="o">=</span> <span class="s">"usr"</span><span class="p">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">PASSWORD</span> <span class="o">=</span> <span class="s">"qwerty"</span><span class="p">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">FIRST_NAME</span> <span class="o">=</span> <span class="s">"john"</span><span class="p">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">LAST_NAME</span> <span class="o">=</span> <span class="s">"doe"</span><span class="p">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="n">String</span> <span class="n">EMAIL</span> <span class="o">=</span> <span class="s">"usr@mail.com"</span><span class="p">;</span>
+
+    <span class="nd">@Nonnull</span>
+    <span class="kd">protected</span> <span class="n">IAdministratorService</span> <span class="nf">createUnit</span><span class="p">(</span><span class="nd">@Nonnull</span> <span class="kd">final</span> <span class="n">IStructuredLogger</span> <span class="n">logger</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="n">createAdministratorService</span><span class="p">(</span><span class="n">logger</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nd">@Test</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">testCreate</span><span class="p">()</span> <span class="p">{</span>
+        <span class="kd">final</span> <span class="n">T</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">getUnit</span><span class="p">();</span>
+        <span class="n">unit</span><span class="p">.</span><span class="na">create</span><span class="p">(</span><span class="n">USERNAME</span><span class="p">,</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="n">FIRST_NAME</span><span class="p">,</span> <span class="n">LAST_NAME</span><span class="p">,</span> <span class="n">EMAIL</span><span class="p">);</span>
+        <span class="n">verifyLog</span><span class="p">()</span>
+                <span class="p">.</span><span class="na">withOperationCaller</span><span class="p">(()</span> <span class="o">-&gt;</span> <span class="n">any</span><span class="p">(</span><span class="n">IAdministratorService</span><span class="p">.</span><span class="na">class</span><span class="p">))</span>
+                <span class="p">.</span><span class="na">withOperationType</span><span class="p">(()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">CREATE</span><span class="p">),</span> <span class="p">()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">ADMINISTRATOR</span><span class="p">))</span>
+                <span class="p">.</span><span class="na">withValue</span><span class="p">(()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">VALUE_ADMINISTRATOR_NAME</span><span class="p">),</span> <span class="p">()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">USERNAME</span><span class="p">))</span>
+                <span class="p">.</span><span class="na">withValue</span><span class="p">(()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">VALUE_FIRST_NAME</span><span class="p">),</span> <span class="p">()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">FIRST_NAME</span><span class="p">))</span>
+                <span class="p">.</span><span class="na">withValue</span><span class="p">(()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">VALUE_LAST_NAME</span><span class="p">),</span> <span class="p">()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">LAST_NAME</span><span class="p">))</span>
+                <span class="p">.</span><span class="na">withValue</span><span class="p">(()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">VALUE_EMAIL</span><span class="p">),</span> <span class="p">()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">EMAIL</span><span class="p">))</span>
+                <span class="p">.</span><span class="na">then</span><span class="p">()</span>
+                <span class="p">.</span><span class="na">withLog</span><span class="p">(()</span> <span class="o">-&gt;</span> <span class="n">eq</span><span class="p">(</span><span class="n">INFO</span><span class="p">));</span>
+    <span class="p">}</span>
+
+<span class="p">}</span>
+</pre>
+<p>I believe, the code is now more robust and pretty nicer.
+And somewhat convenient as well.
+And one of the main points -- any smart IDE can suggest the next step once the dot is pressed.
+Thus, both compiler and IDE make some more confidence for the well-written test.
+By the way, why is <code>Supplier</code> necessary along with the lambda expressions?
+The thing is that Mockito detects if an object passed to a mock is a stub, and if it is not -- then it throws an exception.
+Actually, as far as I know, Mockito check rules are more complex, and Mockito, for example, ignores anonymous classes.
+And in the light of this fact, there is a little loophole: Mocktio does not track matchers passed via <code>return</code> making lambda expressions possible here.
+This affects code and readability a little bit, but lambda expressions deal with it pretty good.</p>
+<p>So we've got the following results:</p>
+<ul>
+<li>more look-alike tests;</li>
+<li>every next step of a test defines a step afterwards, and it's supported by compilers and IDEs really good, and this is not possible using static methods (at least in its original form);</li>
+<li>test initialization and their subsequent execution is performed in the abstract test, and a concrete test merely describes the verifications not even interacting with the original unit.</li>
+</ul>
+</div>
+        </div>
+        
+        <ul class="pager hidden-print">
+<li class="previous">
+                <a href="../2016-09-06-fun-with-java-and-c-preprocessor/" rel="prev" title="Making fun with Java and C preprocessor">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../2016-09-30-i-hate-jpa-and-hibernate/" rel="next" title="I hate JPA and Hibernate">Next post</a>
+            </li>
+        </ul>
+<div id="disqus_thread"></div>
+        <script>
+        var disqus_shortname ="lsh-blog",
+            disqus_url="https://lyubomyr-shaydariv.github.io/posts/2016-09-23-sequential-mockito-verifications-refactoring-with-fluent-interfaces/",
+        disqus_title="Sequential Mockito verifications refactoring with fluent interfaces",
+        disqus_identifier="cache/posts/2016-09-23-sequential-mockito-verifications-refactoring-with-fluent-interfaces.html",
+        disqus_config = function () {
+            this.language = "en";
+        };
+        (function() {
+            var dsq = document.createElement('script'); dsq.async = true;
+            dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script><noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+</noscript>
+    <a href="https://disqus.com" class="dsq-brlink" rel="nofollow">Comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+        
+    
+
+
+    </div>
+
+        
+       <script>var disqus_shortname="lsh-blog";(function(){var a=document.createElement("script");a.async=true;a.src="https://"+disqus_shortname+".disqus.com/count.js";(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(a)}());</script><footer id="footer"><p>Contents © 2021         <a href="mailto:">Lyubomyr Shaydariv</a> - Powered by         <a href="https://getnikola.com" rel="nofollow">Nikola</a>         </p>
+            
+        </footer>
+</div>
+    </section><noscript>
+<style type="text/css">
+	#google-analytics-no-js-placeholder {
+		background: url("http://nojsstats.appspot.com/UA-84297561-1/lyubomyr-shaydariv.github.io");
+	}
+</style>
+<div id="google-analytics-no-js-placeholder"></div>
+</noscript>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-84297561-1', 'auto');
+  ga('send', 'pageview');
+</script><script src="../../assets/js/all-nocdn.js" type="text/javascript"></script><script type="text/javascript">
+            $(function(){
+                $('.timeago').timeago();
+            });
+        </script>
+</body>
+</html>

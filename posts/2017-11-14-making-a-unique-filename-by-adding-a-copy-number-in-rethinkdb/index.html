@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Making a unique filename by adding a copy number in RethinkDB | lsh::blog</title>
+<link href="../../assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="https://lyubomyr-shaydariv.github.io/posts/2017-11-14-making-a-unique-filename-by-adding-a-copy-number-in-rethinkdb/">
+<link rel="icon" href="../../favicon.png" sizes="16x16">
+<!--[if lt IE 9]><script src="/assets/js/html5.js"></script><![endif]--><meta name="author" content="Lyubomyr Shaydariv">
+<meta property="og:site_name" content="lsh::blog">
+<meta property="og:title" content="Making a unique filename by adding a copy number in RethinkDB">
+<meta property="og:url" content="https://lyubomyr-shaydariv.github.io/posts/2017-11-14-making-a-unique-filename-by-adding-a-copy-number-in-rethinkdb/">
+<meta property="og:description" content="RethinkDB is a beautiful document-oriented database I was lucky to use for my most recent project.
+Unfortunately, I don't work for that project anymore, but I would like to share some ideas I implemen">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2017-11-14T14:13:00+03:00">
+<meta property="article:tag" content="reql">
+<meta property="article:tag" content="rethinkdb">
+</head>
+<body>
+    <section class="social"><ul>
+<li><a href="../../index.html" title="home"><i class="icon-home"></i></a></li>
+            <li><a href="../../archive.html" title="archive"><i class="icon-folder-open-alt"></i></a></li>
+            <li><a href="../../categories/index.html" title="tags"><i class="icon-tags"></i></a></li>
+            <li><a href="../../rss.xml" title="RSS feed"><i class="icon-rss"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/lyubomyr-shaydariv-7b4bbb21/" title="me @ LinkedIn"><i class="icon-user"></i></a></li>
+            <li><a href="https://stackexchange.com/users/55617/lyubomyr-shaydariv" title="me @ StackExchange"><i class="icon-stackexchange"></i></a></li>
+            <li><a href="https://github.com/lyubomyr-shaydariv" title="me @ Github"><i class="icon-github"></i></a></li>
+            <li><a href="../../pages/about-me/index.html" title="about me"><i class="icon-smile"></i></a></li>
+
+        </ul></section><section class="page-content"><div class="content" rel="main">
+            
+    <div class="post">
+    
+    <h1 class="p-name entry-title" itemprop="headline name">Making a unique filename by adding a copy number in RethinkDB</h1>
+
+        <div class="meta">
+            <div class="authordate">
+                <time class="timeago" datetime="2017-11-14T14:13:00+03:00">2017-11-14 14:13</time>
+            
+
+            
+          |  
+        <a href="index.md" id="sourcelink">Source</a>
+
+            </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="../../categories/reql/" rel="tag">reql</a></li>
+           <li><a class="tag p-category" href="../../categories/rethinkdb/" rel="tag">rethinkdb</a></li>
+        </ul>
+</div>
+
+        </div>
+        <div class="body">
+            <div>
+<p><a href="https://www.rethinkdb.com/">RethinkDB</a> is a beautiful document-oriented database I was lucky to use for my most recent project.
+Unfortunately, I don't work for that project anymore, but I would like to share some ideas I implemented while working on that project.</p>
+<p>That project implemented a virtual file system table in a RethinDB database, and one of the requirements while creating a new file entry was making its filename unique.
+A usual filename generated chain named as if you downloading a same-named file: <code>file.ext</code>, <code>file (1).ext</code>, <code>file (2).ext</code> and so on.</p>
+<!-- TEASER_END -->
+
+<p>First of all, let's drop a case when we download all filenames and calculate the first free copy number at the backend like Java or JavaScript/nodejs.
+Also we could implement such a search using a mixed scenario: the search algorithm in Java or JavaScript where the search algorithm strategy could be implemented as a single database query execution.</p>
+<p>Fortunately, ReQL is powerful enough to let such an algorithm to be implemented completely using ReQL facilities.
+I'll implement the query in JavaScript since it can be easily tested in Data Explorer.</p>
+<p>Second, let me describe a simple algorithm with <em>O(n)</em> complexity:</p>
+<ol>
+<li>Get all filenames that have the following naming pattern: <code>file.ext</code> or <code>file (n).ext</code> where <em>n &gt;= 1</em>.</li>
+<li>Extract the copy number <em>n</em> (if no copy number is present, assume it's <em>0</em>).</li>
+<li>Create a sorted list <em>a</em> of unique elements from all <em>n</em> values.</li>
+<li>If we don't have the 0 value in that list, we don't need to add the copy number to the filename, therefore the algorithm can terminate.</li>
+<li>Iterate from the first element of the list <em>a[n]</em>, and check every next value <em>a[n + 1]</em>: if their difference is 1, then no free slot is available, otherwise there should be a free value slot.</li>
+</ol>
+<p>For example:</p>
+<ol>
+<li>We have a set of <code>file (4).ext</code>, <code>file (2).ext</code>, <code>file.ext</code>, and <code>file (1).ext</code>.</li>
+<li>It gets transformed in <em>[4, 2, 0, 1]</em>.</li>
+<li>When it gets sorted, it becomes <em>[0, 1, 2, 4]</em>.</li>
+<li>The list has <em>0</em>, so we must search further.</li>
+<li>Having that, skip the first value, we calculate the difference of <em>1</em> and <em>0</em> which is <em>1</em> (meaning that <em>1</em> is occupied), the difference of <em>2</em> and <em>1</em> which is <em>1</em> (meaning that <em>2</em> is occupied), the difference of <em>4</em> and <em>2</em> which is <em>2</em> (meaning that <em>2</em> is free).</li>
+</ol>
+<p>Here is a ReQL implementation:</p>
+<pre class="code literal-block"><span class="nx">r</span><span class="p">.</span><span class="nx">db</span><span class="p">(</span><span class="cm">/*your database name here*/</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">table</span><span class="p">(</span><span class="cm">/*your table name here*/</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">filter</span><span class="p">(</span><span class="cm">/*your filter search criteria here*/</span><span class="p">)</span>
+    <span class="c1">// match each filename against the given pattern</span>
+    <span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">file</span> <span class="p">=&gt;</span> <span class="nx">file</span><span class="p">(</span><span class="s1">'fileName'</span><span class="p">).</span><span class="nx">match</span><span class="p">(</span><span class="sb">`^</span><span class="si">${</span><span class="nx">quoteRx</span><span class="p">(</span><span class="nx">filename</span><span class="p">)</span><span class="si">}</span><span class="sb">(?: \\((\\d+)\\))?</span><span class="si">${</span><span class="nx">quoteRx</span><span class="p">(</span><span class="nx">extension</span><span class="p">)</span><span class="si">}</span><span class="sb">$`</span><span class="p">))</span>
+    <span class="c1">// extract the copy number group</span>
+    <span class="p">.</span><span class="nx">getField</span><span class="p">(</span><span class="s1">'groups'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">group</span> <span class="p">=&gt;</span> <span class="nx">group</span><span class="p">.</span><span class="nx">nth</span><span class="p">(</span><span class="mf">0</span><span class="p">))</span>
+    <span class="c1">// if the filename matches the pattern, but no copy number found, assume it's just 0 since we start copies from 1</span>
+    <span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="nx">value</span> <span class="p">=&gt;</span> <span class="nx">r</span><span class="p">.</span><span class="nx">branch</span><span class="p">(</span><span class="nx">value</span><span class="p">.</span><span class="nx">ne</span><span class="p">(</span><span class="kc">null</span><span class="p">),</span> <span class="nx">value</span><span class="p">(</span><span class="s1">'str'</span><span class="p">).</span><span class="nx">coerceTo</span><span class="p">(</span><span class="s1">'number'</span><span class="p">),</span> <span class="mf">0</span><span class="p">))</span>
+    <span class="c1">// make them all unique</span>
+    <span class="p">.</span><span class="nx">distinct</span><span class="p">()</span>
+    <span class="c1">// and ensure they are sorted from min to max (not sure if r.distinct() can do it itself)</span>
+    <span class="p">.</span><span class="nx">orderBy</span><span class="p">(</span><span class="nx">n</span> <span class="p">=&gt;</span> <span class="nx">n</span><span class="p">)</span>
+    <span class="c1">// analyze the obtained copy numbers</span>
+    <span class="p">.</span><span class="k">do</span><span class="p">(</span><span class="nx">array</span> <span class="p">=&gt;</span> <span class="nx">r</span><span class="p">.</span><span class="nx">branch</span><span class="p">(</span>
+        <span class="c1">// if the found array is empty or there are any copy number greater than 1 (that we start from)</span>
+        <span class="nx">array</span><span class="p">.</span><span class="nx">count</span><span class="p">().</span><span class="nx">eq</span><span class="p">(</span><span class="mf">0</span><span class="p">).</span><span class="nx">or</span><span class="p">(</span><span class="nx">array</span><span class="p">.</span><span class="nx">nth</span><span class="p">(</span><span class="mf">0</span><span class="p">).</span><span class="nx">ge</span><span class="p">(</span><span class="mf">1</span><span class="p">)),</span>
+        <span class="c1">// then return -1 as "not found"</span>
+        <span class="o">-</span><span class="mf">1</span><span class="p">,</span>
+        <span class="c1">// else, knowing that we have at least 1-element array whose first element is not 0</span>
+        <span class="nx">array</span><span class="p">.</span><span class="nx">skip</span><span class="p">(</span><span class="mf">1</span><span class="p">)</span>
+        <span class="c1">// start the folding setting its initial minimum value to the first array element value (it's the minimum already)</span>
+        <span class="c1">// and check if every such a pair difference is 1:</span>
+        <span class="c1">// * if the difference is 1, then we've found a greater value and must proceed to the next iteration</span>
+        <span class="c1">// * otherwise, return the minimum (TODO is it possible to break fold iterations in ReQL?)</span>
+        <span class="p">.</span><span class="nx">fold</span><span class="p">(</span><span class="nx">array</span><span class="p">.</span><span class="nx">nth</span><span class="p">(</span><span class="mf">0</span><span class="p">),</span> <span class="p">(</span><span class="nx">minimum</span><span class="p">,</span> <span class="nx">current</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="nx">r</span><span class="p">.</span><span class="nx">branch</span><span class="p">(</span><span class="nx">current</span><span class="p">.</span><span class="nx">sub</span><span class="p">(</span><span class="nx">minimum</span><span class="p">).</span><span class="nx">eq</span><span class="p">(</span><span class="mf">1</span><span class="p">),</span> <span class="nx">current</span><span class="p">,</span> <span class="nx">minimum</span><span class="p">))</span>
+        <span class="c1">// and increase the last found by one therefore giving the first "free" slot</span>
+        <span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="mf">1</span><span class="p">),</span>
+    <span class="p">))</span>
+</pre>
+<p>One more note about <code>quoteRx()</code>.
+This is a function that quotes any string in order to disable all regular expression characters represented by that string.
+We cannot just prepend each character by a backslash <code>\</code> because it will cause a runtime error when RethinkDB will parse the regular expression.
+RethinkDB <a href="https://www.rethinkdb.com/api/javascript/match/"><code>match()</code></a> operator uses <a href="https://github.com/google/re2/wiki/Syntax">RE2 syntax</a> and I couldn't find any quote function implementation there.
+I hope the following function covers RE2 syntax nicely (it only prepends the characters that have special meaning as a regular expression symbol):</p>
+<pre class="code literal-block"><span class="kd">const</span> <span class="nx">metacharacters</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Set</span><span class="p">([</span>
+  <span class="s1">'\\'</span><span class="p">,</span> <span class="s1">'+'</span><span class="p">,</span> <span class="s1">'*'</span><span class="p">,</span> <span class="s1">'?'</span><span class="p">,</span> <span class="s1">'['</span><span class="p">,</span> <span class="s1">'^'</span><span class="p">,</span> <span class="s1">']'</span><span class="p">,</span>
+  <span class="s1">'$'</span><span class="p">,</span> <span class="s1">'('</span><span class="p">,</span> <span class="s1">')'</span><span class="p">,</span> <span class="s1">'{'</span><span class="p">,</span> <span class="s1">'}'</span><span class="p">,</span> <span class="s1">'='</span><span class="p">,</span> <span class="s1">'!'</span><span class="p">,</span>
+  <span class="s1">'&lt;'</span><span class="p">,</span> <span class="s1">'&gt;'</span><span class="p">,</span> <span class="s1">'|'</span><span class="p">,</span> <span class="s1">':'</span><span class="p">,</span> <span class="s1">'-'</span><span class="p">,</span>
+<span class="p">]);</span>
+
+<span class="kd">const</span> <span class="nx">quoteRx</span> <span class="o">=</span> <span class="nx">rx</span> <span class="p">=&gt;</span> <span class="nx">rx</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/(.)/g</span><span class="p">,</span> <span class="nx">ch</span> <span class="p">=&gt;</span> <span class="p">(</span><span class="nx">metacharacters</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="nx">ch</span><span class="p">)</span> <span class="o">?</span> <span class="sb">`\\</span><span class="si">${</span><span class="nx">ch</span><span class="si">}</span><span class="sb">`</span> <span class="o">:</span> <span class="nx">ch</span><span class="p">));</span>
+</pre>
+</div>
+        </div>
+        
+        <ul class="pager hidden-print">
+<li class="previous">
+                <a href="../2017-01-26-optional-tends-to-be-used-in-a-wrong-way/" rel="prev" title="Optional&lt;T&gt; tends to be used in a wrong way">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../2017-11-14-finding-a-unique-code-in-a-code-pool-in-rethinkdb/" rel="next" title="Finding a unique code in a code pool in RethinkDB">Next post</a>
+            </li>
+        </ul>
+<div id="disqus_thread"></div>
+        <script>
+        var disqus_shortname ="lsh-blog",
+            disqus_url="https://lyubomyr-shaydariv.github.io/posts/2017-11-14-making-a-unique-filename-by-adding-a-copy-number-in-rethinkdb/",
+        disqus_title="Making a unique filename by adding a copy number in RethinkDB",
+        disqus_identifier="cache/posts/2017-11-14-making-a-unique-filename-by-adding-a-copy-number-in-rethinkdb.html",
+        disqus_config = function () {
+            this.language = "en";
+        };
+        (function() {
+            var dsq = document.createElement('script'); dsq.async = true;
+            dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script><noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+</noscript>
+    <a href="https://disqus.com" class="dsq-brlink" rel="nofollow">Comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+        
+    
+
+
+    </div>
+
+        
+       <script>var disqus_shortname="lsh-blog";(function(){var a=document.createElement("script");a.async=true;a.src="https://"+disqus_shortname+".disqus.com/count.js";(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(a)}());</script><footer id="footer"><p>Contents © 2021         <a href="mailto:">Lyubomyr Shaydariv</a> - Powered by         <a href="https://getnikola.com" rel="nofollow">Nikola</a>         </p>
+            
+        </footer>
+</div>
+    </section><noscript>
+<style type="text/css">
+	#google-analytics-no-js-placeholder {
+		background: url("http://nojsstats.appspot.com/UA-84297561-1/lyubomyr-shaydariv.github.io");
+	}
+</style>
+<div id="google-analytics-no-js-placeholder"></div>
+</noscript>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-84297561-1', 'auto');
+  ga('send', 'pageview');
+</script><script src="../../assets/js/all-nocdn.js" type="text/javascript"></script><script type="text/javascript">
+            $(function(){
+                $('.timeago').timeago();
+            });
+        </script>
+</body>
+</html>

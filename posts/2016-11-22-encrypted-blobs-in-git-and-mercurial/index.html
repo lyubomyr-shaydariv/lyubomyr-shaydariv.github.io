@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Encrypted blobs in Git and Mercurial | lsh::blog</title>
+<link href="../../assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="https://lyubomyr-shaydariv.github.io/posts/2016-11-22-encrypted-blobs-in-git-and-mercurial/">
+<link rel="icon" href="../../favicon.png" sizes="16x16">
+<!--[if lt IE 9]><script src="/assets/js/html5.js"></script><![endif]--><meta name="author" content="Lyubomyr Shaydariv">
+<meta property="og:site_name" content="lsh::blog">
+<meta property="og:title" content="Encrypted blobs in Git and Mercurial">
+<meta property="og:url" content="https://lyubomyr-shaydariv.github.io/posts/2016-11-22-encrypted-blobs-in-git-and-mercurial/">
+<meta property="og:description" content="Git and Mercurial started their lives in the mid 2000 bringing the growing popularity DVCS concept to people.
+Both of them use similar techniques to gain the same results and offer very similar featur">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2016-11-22T23:30:00+03:00">
+<meta property="article:tag" content="git">
+<meta property="article:tag" content="mercurial">
+</head>
+<body>
+    <section class="social"><ul>
+<li><a href="../../index.html" title="home"><i class="icon-home"></i></a></li>
+            <li><a href="../../archive.html" title="archive"><i class="icon-folder-open-alt"></i></a></li>
+            <li><a href="../../categories/index.html" title="tags"><i class="icon-tags"></i></a></li>
+            <li><a href="../../rss.xml" title="RSS feed"><i class="icon-rss"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/lyubomyr-shaydariv-7b4bbb21/" title="me @ LinkedIn"><i class="icon-user"></i></a></li>
+            <li><a href="https://stackexchange.com/users/55617/lyubomyr-shaydariv" title="me @ StackExchange"><i class="icon-stackexchange"></i></a></li>
+            <li><a href="https://github.com/lyubomyr-shaydariv" title="me @ Github"><i class="icon-github"></i></a></li>
+            <li><a href="../../pages/about-me/index.html" title="about me"><i class="icon-smile"></i></a></li>
+
+        </ul></section><section class="page-content"><div class="content" rel="main">
+            
+    <div class="post">
+    
+    <h1 class="p-name entry-title" itemprop="headline name">Encrypted blobs in Git and Mercurial</h1>
+
+        <div class="meta">
+            <div class="authordate">
+                <time class="timeago" datetime="2016-11-22T23:30:00+03:00">2016-11-22 23:30</time>
+            
+
+            
+          |  
+        <a href="index.md" id="sourcelink">Source</a>
+
+            </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="../../categories/git/" rel="tag">git</a></li>
+           <li><a class="tag p-category" href="../../categories/mercurial/" rel="tag">mercurial</a></li>
+        </ul>
+</div>
+
+        </div>
+        <div class="body">
+            <div>
+<p><a href="https://git-scm.com/">Git</a> and <a href="https://www.mercurial-scm.org/">Mercurial</a> started their lives in the mid 2000 bringing the growing popularity <a href="https://en.wikipedia.org/wiki/Distributed_version_control">DVCS</a> concept to people.
+Both of them use similar techniques to gain the same results and offer very similar features.
+One of such features is bidirectional filtering applied to files once they get checked out and committed in (or staged to the index) from and to the repository respectively.
+The filters can be used in many ways, like SVN-like keyword expansion or auto-formatting.</p>
+<!-- TEASER_END -->
+
+<p>And one of the most interesting filters is an ecrypting/decrypting filter making the repository a grey box data container.
+Unfortunately I still have no idea how to make it stop revealing the filenames, and not sure if it's possible to hide directory and filenames.</p>
+<h3>Git</h3>
+<p>Git provides a special set of settings, named <a href="https://git-scm.com/book/en/v2/Customizing-Git-Git-Attributes">attributes</a>, that can be used to fine-tune a particular repository.</p>
+<p><img alt="Git clean filter workflow" src="../../images/git-clean-filter-workflow.png"></p>
+<p><img alt="Git smudge filter workflow" src="../../images/git-smudge-filter-workflow.png"></p>
+<p>Here is an example <code>.gitattributes</code>:</p>
+<pre class="code literal-block"><span class="err">*.*</span> <span class="nf">filter</span><span class="err">=</span><span class="no">crypt</span>
+<span class="na">.gitattributes</span> <span class="no">filter</span><span class="err">=</span>
+</pre>
+<p>The two lines above are very simple:</p>
+<ul>
+<li>
+<code>*.* filter=crypt</code> - apply the <code>crypt</code> filter to all files</li>
+<li>
+<code>.gitattributes filter=</code> - but just don't apply the filter to the <code>.gitattributes</code> file, or the file would be encrypted hence blocking the filters</li>
+</ul>
+<p>Now let's define the <code>crypt</code> filter in local <code>.git/config</code>:</p>
+<pre class="code literal-block"><span class="k">[filter "crypt"]</span>
+    <span class="na">clean</span> <span class="o">=</span> <span class="s">openssl enc -e -aes256 -k PASSWORD</span>
+    <span class="na">smudge</span> <span class="o">=</span> <span class="s">openssl enc -d -aes256 -k PASSWORD</span>
+</pre>
+<p>where <code>PASSWORD</code> is your password in plain text.</p>
+<h3>Mercurial</h3>
+<p>Mercurial provides a very similar <a href="https://www.mercurial-scm.org/wiki/EncodeDecodeFilter">feature</a>, however its use seems to be discouraged.
+Mercurial <code>[encode]</code> is an equivalent to Git <code>clean</code>, and <code>[decode]</code> is equivalent to Git <code>smudge</code> respectively.</p>
+<h2>Linux</h2>
+<p>Example <code>.hg/hgrc</code>:</p>
+<pre class="code literal-block"><span class="k">[encode]</span>
+<span class="na">**</span> <span class="o">=</span> <span class="s">pipe: openssl enc -e -salt -aes256 -k PASSWORD</span>
+<span class="na">**.*</span> <span class="o">=</span> <span class="s">pipe: openssl enc -e -salt -aes256 -k PASSWORD</span>
+
+<span class="k">[decode]</span>
+<span class="na">**</span> <span class="o">=</span> <span class="s">pipe: openssl enc -d -salt -aes256 -k PASSWORD</span>
+<span class="na">**.*</span> <span class="o">=</span> <span class="s">pipe: openssl enc -d -aes256 -k PASSWORD</span>
+</pre>
+<h2>Windows</h2>
+<p>Mercurial documentation recommends not to use the <code>pipe:</code> mechanism for Windows:</p>
+<blockquote>
+<p>The tempfile mechanism is recommended for Windows systems, where the standard shell I/O redirection operators often have strange effects. In particular, if you are doing line ending conversion on Windows using the popular <code>dos2unix</code> and <code>unix2dos</code> programs, you must use the tempfile mechanism, as using pipes will corrupt the contents of your files.</p>
+</blockquote>
+<p>So we're going to use temporary files:</p>
+<pre class="code literal-block"><span class="k">[encode]</span>
+<span class="na">**</span> <span class="o">=</span> <span class="s">tempfile: openssl enc -e -salt -aes256 -k PASSWORD -in INFILE -out OUTFILE</span>
+<span class="na">**.*</span> <span class="o">=</span> <span class="s">tempfile: openssl enc -e -salt -aes256 -k PASSWORD -in INFILE -out OUTFILE</span>
+
+<span class="k">[decode]</span>
+<span class="na">**</span> <span class="o">=</span> <span class="s">tempfile: openssl enc -d -aes256 -k PASSWORD -in INFILE -out OUTFILE</span>
+<span class="na">**.*</span> <span class="o">=</span> <span class="s">tempfile: openssl enc -d -aes256 -k PASSWORD -in INFILE -out OUTFILE</span>
+</pre>
+<p>Note that <code>**</code> and <code>**.*</code> mean filenames with extensions and without extensions respectively.</p>
+<h3>Important notes</h3>
+<p>I would not recommend to encrypt/decrypt files in Mercurial or Git repositories using filters, at least because of the following flaws.</p>
+<h2>Some files may have status reporting files as modified</h2>
+<p>For whatever reason, on Windows, probing the working copy status may report some files as changed regardless the real content change.
+This issue seems to be reproducible for both Git and Mercurial, and I don't know if there is a way to get rid of "spoiled" file statuses.
+Maybe this issue is caused by some file metadata, but even committing such files won't make the unchanged after the commit.</p>
+<h2>Use <code>git mv</code> and <code>hg mv</code> to move files</h2>
+<p>Both Git and Mercurial seem not to track manually moved files when the files are modified dramatically using such filters.
+Still have to re-check it, but I have something in my memory reminding me file move issues for such repositories.</p>
+<h2>Inefficient storage</h2>
+<p>Since the almost any encrypted files look like true binary files, storing encrypted files cannot be recommended as a sufficient solution.
+Any file update would dramatically change the file binary representation, and this would mean that a file would be stored probably without delta.
+I'm not really sure about this exactly, but this is would probably work like that.
+However, if you prefer to encrypt a few short files only, I should not make a big impact.</p>
+<h2>Forever password</h2>
+<p>Another flaw is that the password should be constant for all the repo life time.
+If you change the password and update the working copy across different revisions with old passwords, the decrypted files will be broken in Mercurial because <code>.hgrc</code> is not updated unlike Git <code>.gitattributes</code>.
+So such repositories are extremely password-sensitive anyway.</p>
+<h2>Accidental submitting an encrypted file requires history rewriting to encrypt it</h2>
+<p>Another annoying thing is when one submits a plain file to a repository with encrypted files but having no filters configured.
+At least the history rewriting hell would begin if the accidentally committed file is supposed to be encrypted and matches filters filename patterns due to potential clashing.
+Quick <code>git reset --soft HEAD~1</code> and <code>hg strip -r tip --keep</code> would allow to make another commit and save the situation.</p>
+<h3>Conclusion</h3>
+<p>Git and Mercurial filtering may do great things, at least the ones described in Git online documentation, but encryption/decryption should be probably automated in other way, not with Git or Mercurial facilities.</p>
+</div>
+        </div>
+        
+        <ul class="pager hidden-print">
+<li class="previous">
+                <a href="../2016-11-22-ukrainian-fillwords-simple-crack/" rel="prev" title="Ukrainian Fillwords simple crack">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../2016-12-02-visualizing-pages-graph-in-mediawiki/" rel="next" title="Visualizing pages graph in MediaWiki">Next post</a>
+            </li>
+        </ul>
+<div id="disqus_thread"></div>
+        <script>
+        var disqus_shortname ="lsh-blog",
+            disqus_url="https://lyubomyr-shaydariv.github.io/posts/2016-11-22-encrypted-blobs-in-git-and-mercurial/",
+        disqus_title="Encrypted blobs in Git and Mercurial",
+        disqus_identifier="cache/posts/2016-11-22-encrypted-blobs-in-git-and-mercurial.html",
+        disqus_config = function () {
+            this.language = "en";
+        };
+        (function() {
+            var dsq = document.createElement('script'); dsq.async = true;
+            dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script><noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+</noscript>
+    <a href="https://disqus.com" class="dsq-brlink" rel="nofollow">Comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+        
+    
+
+
+    </div>
+
+        
+       <script>var disqus_shortname="lsh-blog";(function(){var a=document.createElement("script");a.async=true;a.src="https://"+disqus_shortname+".disqus.com/count.js";(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(a)}());</script><footer id="footer"><p>Contents © 2021         <a href="mailto:">Lyubomyr Shaydariv</a> - Powered by         <a href="https://getnikola.com" rel="nofollow">Nikola</a>         </p>
+            
+        </footer>
+</div>
+    </section><noscript>
+<style type="text/css">
+	#google-analytics-no-js-placeholder {
+		background: url("http://nojsstats.appspot.com/UA-84297561-1/lyubomyr-shaydariv.github.io");
+	}
+</style>
+<div id="google-analytics-no-js-placeholder"></div>
+</noscript>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-84297561-1', 'auto');
+  ga('send', 'pageview');
+</script><script src="../../assets/js/all-nocdn.js" type="text/javascript"></script><script type="text/javascript">
+            $(function(){
+                $('.timeago').timeago();
+            });
+        </script>
+</body>
+</html>

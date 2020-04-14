@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Cracking Jewels Saga for Android | lsh::blog</title>
+<link href="../../assets/css/all-nocdn.css" rel="stylesheet" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="RSS" href="../../rss.xml">
+<link rel="canonical" href="https://lyubomyr-shaydariv.github.io/posts/2016-08-25-cracking-jewels-saga-for-android/">
+<link rel="icon" href="../../favicon.png" sizes="16x16">
+<!--[if lt IE 9]><script src="/assets/js/html5.js"></script><![endif]--><meta name="author" content="Lyubomyr Shaydariv">
+<meta property="og:site_name" content="lsh::blog">
+<meta property="og:title" content="Cracking Jewels Saga for Android">
+<meta property="og:url" content="https://lyubomyr-shaydariv.github.io/posts/2016-08-25-cracking-jewels-saga-for-android/">
+<meta property="og:description" content="The next month marks 12 years since my first crack.
+I feel a kind of old.
+It was a nice period trying to find something new everyday.
+Software cracking was among them.
+Despite I have never been skille">
+<meta property="og:type" content="article">
+<meta property="article:published_time" content="2016-08-25T00:00:00+03:00">
+<meta property="article:tag" content="android">
+<meta property="article:tag" content="cracking">
+<meta property="article:tag" content="games">
+</head>
+<body>
+    <section class="social"><ul>
+<li><a href="../../index.html" title="home"><i class="icon-home"></i></a></li>
+            <li><a href="../../archive.html" title="archive"><i class="icon-folder-open-alt"></i></a></li>
+            <li><a href="../../categories/index.html" title="tags"><i class="icon-tags"></i></a></li>
+            <li><a href="../../rss.xml" title="RSS feed"><i class="icon-rss"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/lyubomyr-shaydariv-7b4bbb21/" title="me @ LinkedIn"><i class="icon-user"></i></a></li>
+            <li><a href="https://stackexchange.com/users/55617/lyubomyr-shaydariv" title="me @ StackExchange"><i class="icon-stackexchange"></i></a></li>
+            <li><a href="https://github.com/lyubomyr-shaydariv" title="me @ Github"><i class="icon-github"></i></a></li>
+            <li><a href="../../pages/about-me/index.html" title="about me"><i class="icon-smile"></i></a></li>
+
+        </ul></section><section class="page-content"><div class="content" rel="main">
+            
+    <div class="post">
+    
+    <h1 class="p-name entry-title" itemprop="headline name">Cracking Jewels Saga for Android</h1>
+
+        <div class="meta">
+            <div class="authordate">
+                <time class="timeago" datetime="2016-08-25T00:00:00+03:00">2016-08-25 00:00</time>
+            
+
+            
+          |  
+        <a href="index.md" id="sourcelink">Source</a>
+
+            </div>
+            
+        <div itemprop="keywords" class="tags">
+        <ul>
+        Tags : 
+           <li><a class="tag p-category" href="../../categories/android/" rel="tag">android</a></li>
+           <li><a class="tag p-category" href="../../categories/cracking/" rel="tag">cracking</a></li>
+           <li><a class="tag p-category" href="../../categories/games/" rel="tag">games</a></li>
+        </ul>
+</div>
+
+        </div>
+        <div class="body">
+            <div>
+<p>The next month marks 12 years since my first crack.
+I feel a kind of old.
+It was a nice period trying to find something new everyday.
+Software cracking was among them.
+Despite I have never been skilled in cracking and all my old cracks are quite simple, I still respect reverse engineering guys very much.</p>
+<p>Recently I've became a fan of an Android game called Jewels Saga.
+I didn't use any cheats and I could reach the 198th level being stuck on the 197th level.
+However I couldn't walk through the level for more than a week, so...</p>
+<!-- TEASER_END -->
+
+<h3>Essential requirements</h3>
+<ul>
+<li>
+<a href="https://developer.android.com/studio/command-line/adb.html"><code>adb</code></a> (may be supplied with Android SDK, but standalone packs exist as well)</li>
+<li>
+<a href="https://github.com/nelenkov/android-backup-extractor"><code>nelenkov/android-backup-extractor</code></a> — a nice tool to manage <code>ab</code> to <code>tar</code> conversion and vice versa (a precompiled binary, Git commit hash <code>fcb4ee5af3ec973a406709de889a5cf340b61ce1</code>, can be downloaded <a href="../../downloads/abe-all-fcb4ee5af3ec973a406709de889a5cf340b61ce1.jar">here</a>)</li>
+<li>
+<a href="https://github.com/pxb1988/dex2jar"><code>dex2jar</code></a> — a tool to convert Android format classes to Java classes format</li>
+<li>
+<a href="https://github.com/fesh0r/fernflower"><code>fesh0r/fernflower</code></a> — a Java decompiler (a precompiled binary, Git commit hash <code>77d6c2906f29492a568eedf5e553767d65350ccc</code>, can be downloaded <a href="../../downloads/fernflower-77d6c2906f29492a568eedf5e553767d65350ccc.jar">here</a>)</li>
+<li><a href="https://www.openssl.org/"><code>openssl</code></a></li>
+<li>
+<a href="https://stedolan.github.io/jq/"><code>jq</code></a> 1.4 or higher — a JSON processor</li>
+</ul>
+<h3>Extra requirements</h3>
+<p>The following requirements are necessary to build <code>nelenkov/android-backup-extractor</code> and <code>fesh0r/fernflower</code>:</p>
+<ul>
+<li>JDK 1.6+</li>
+<li>
+<a href="https://gradle.org/"><code>gradle</code></a> — a build tool to build <code>nelenkov/android-backup-extractor</code>
+</li>
+<li>
+<a href="http://ant.apache.org/"><code>ant</code></a> — a build tool to build <code>fesh0r/fernlower</code>
+</li>
+</ul>
+<h3>The process</h3>
+<h2>Building <code>nelenkov/android-backup-extractor</code>
+</h2>
+<p>First, we need to build <code>nelenkov/android-backup-extractor</code>.
+This tool is a simple <code>ab</code> to <code>tar</code> and vice versa manager since Android backups are not simple <code>tar</code>s.</p>
+<pre class="code literal-block">git clone https://github.com/nelenkov/android-backup-extractor.git
+    &amp;&amp; cd android-backup-extractor
+    &amp;&amp; ./gradlew
+</pre>
+<p>The result JAR file will be located at <code>./build/libs/abe-all.jar</code> if the build is successful.</p>
+<h2>Building <code>fesh0r/fernflower</code>:</h2>
+<p>The overall build process for this tool is really straight forward as well:</p>
+<pre class="code literal-block">git clone https://github.com/fesh0r/fernflower.git
+    &amp;&amp; cd fernflower
+    &amp;&amp; ant
+</pre>
+<h2>Preparing the game backup</h2>
+<ul>
+<li>Backup the application using <code>adb</code>:</li>
+</ul>
+<pre class="code literal-block">adb backup -f com.smilerlee.jewels.ab -apk com.smilerlee.jewels
+</pre>
+<ul>
+<li>Convert the <code>ab</code> to <code>tar</code> using <code>nelenkov/android-backup-extractor</code>:</li>
+</ul>
+<pre class="code literal-block">java -jar abe-all.jar unpack com.smilerlee.jewels.ab com.smilerlee.jewels.ab.tar
+</pre>
+<ul>
+<li>Since Android backups are really file order sensitive, we have to generate an exact files order list in order to guarantee expected order while repacking:</li>
+</ul>
+<pre class="code literal-block">tar -tf com.smilerlee.jewels.ab.tar &gt; com.smilerlee.jewels.ab.tar.lst
+</pre>
+<h2>Analyzing the game</h2>
+<ul>
+<li>Extract the game application APK:</li>
+</ul>
+<pre class="code literal-block">tar -xvf com.smilerlee.jewels.ab.tar apps/com.smilerlee.jewels/a/base.apk \
+    &amp;&amp; mv apps/com.smilerlee.jewels/a/base.apk . \
+    &amp;&amp; rm -rf apps
+</pre>
+<ul>
+<li>Extract the classes <code>dex</code> file:</li>
+</ul>
+<pre class="code literal-block">unzip -p base.apk classes.dex &gt; classes.dex
+</pre>
+<ul>
+<li>Convert the <code>dex</code> file to a regular <code>jar</code> using <code>dex2jar</code>:</li>
+</ul>
+<pre class="code literal-block">sh d2j-dex2jar.sh classes.dex
+</pre>
+<p>Decompile the <code>jar</code> and save the decompiled Java source code using <code>fernflower</code>:</p>
+<pre class="code literal-block">mkdir -p out \
+    &amp;&amp; java -jar fernflower.jar classes-dex2jar.jar out \
+    &amp;&amp; mv out/classes-dex2jar.jar classes-dex2jar.jar.src.zip \
+    &amp;&amp; rm -rf out
+</pre>
+<p>The game classes are not obfuscated and can be easily read by a human.
+Jewels Saga uses Android shared preferences facility to store the game state (unlocked levels, bonuses, etc).
+However, the state is encrypted and stored in <code>apps/com.smilerlee.jewels/sp/save.xml</code> and its <code>/map/string[@name="state"]/text()</code> node respectively.</p>
+<ul>
+<li>Unpack the source code:</li>
+</ul>
+<p><code>unzip classes-dex2jar.jar.src.zip -d  classes-dex2jar.jar.src</code></p>
+<p>And here is how the strings are encrypted and decrypted in the game (see <code>classes-dex2jar.jar.src/com/smilerlee/jewels/states/JewelsState.java</code>):</p>
+<pre class="code literal-block"><span class="kd">private</span> <span class="kd">static</span> <span class="n">Key</span> <span class="n">key</span> <span class="o">=</span> <span class="k">new</span> <span class="n">SecretKeySpec</span><span class="p">(</span><span class="n">Codecs</span><span class="p">.</span><span class="na">fromHex</span><span class="p">(</span><span class="s">"4cb04fa74c7c07e9"</span><span class="p">),</span> <span class="s">"DES"</span><span class="p">);</span>
+</pre>
+<pre class="code literal-block"><span class="kd">private</span> <span class="kd">static</span> <span class="n">String</span> <span class="nf">encrypt</span><span class="p">(</span><span class="n">String</span> <span class="n">paramString</span><span class="p">)</span>
+    <span class="kd">throws</span> <span class="n">Exception</span> <span class="p">{</span>
+    <span class="n">Cipher</span> <span class="n">localCipher</span> <span class="o">=</span> <span class="n">Cipher</span><span class="p">.</span><span class="na">getInstance</span><span class="p">(</span><span class="s">"DES"</span><span class="p">);</span>
+    <span class="n">localCipher</span><span class="p">.</span><span class="na">init</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">key</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">Codecs</span><span class="p">.</span><span class="na">toHex</span><span class="p">(</span><span class="n">localCipher</span><span class="p">.</span><span class="na">doFinal</span><span class="p">(</span><span class="n">Codecs</span><span class="p">.</span><span class="na">getBytes</span><span class="p">(</span><span class="n">paramString</span><span class="p">)));</span>
+<span class="p">}</span>
+
+<span class="kd">private</span> <span class="kd">static</span> <span class="n">String</span> <span class="nf">decrypt</span><span class="p">(</span><span class="n">String</span> <span class="n">paramString</span><span class="p">)</span>
+    <span class="kd">throws</span> <span class="n">Exception</span> <span class="p">{</span>
+    <span class="n">Cipher</span> <span class="n">localCipher</span> <span class="o">=</span> <span class="n">Cipher</span><span class="p">.</span><span class="na">getInstance</span><span class="p">(</span><span class="s">"DES"</span><span class="p">);</span>
+    <span class="n">localCipher</span><span class="p">.</span><span class="na">init</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">key</span><span class="p">);</span>
+    <span class="k">return</span> <span class="n">Codecs</span><span class="p">.</span><span class="na">newString</span><span class="p">(</span><span class="n">localCipher</span><span class="p">.</span><span class="na">doFinal</span><span class="p">(</span><span class="n">Codecs</span><span class="p">.</span><span class="na">fromHex</span><span class="p">(</span><span class="n">paramString</span><span class="p">)));</span>
+<span class="p">}</span>
+</pre>
+<p>As you can see, a simple <a href="https://en.wikipedia.org/wiki/Data_Encryption_Standard">DES</a> is used and <code>4cb04fa74c7c07e9</code> is the encryption key.
+Other <code>Codecs.*</code> methods are really self-descriptive.
+<code>1</code> and <code>2</code> are <code>Cipher.ENCRYPT_MODE</code> and <code>Cipher.DECRYPT_MODE</code> respectively.
+These constants were inlined during compilation so <code>jd</code> couldn't resolve them.</p>
+<h2>Preparing the game state</h2>
+<ul>
+<li>Extract the saved state:</li>
+</ul>
+<pre class="code literal-block"><span class="n">tar</span><span class="w"> </span><span class="o">-</span><span class="n">xvf</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">smilerlee</span><span class="p">.</span><span class="n">jewels</span><span class="p">.</span><span class="n">ab</span><span class="p">.</span><span class="n">tar</span><span class="w"> </span><span class="n">apps</span><span class="o">/</span><span class="n">com</span><span class="p">.</span><span class="n">smilerlee</span><span class="p">.</span><span class="n">jewels</span><span class="o">/</span><span class="n">sp</span><span class="o">/</span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">mv</span><span class="w"> </span><span class="n">apps</span><span class="o">/</span><span class="n">com</span><span class="p">.</span><span class="n">smilerlee</span><span class="p">.</span><span class="n">jewels</span><span class="o">/</span><span class="n">sp</span><span class="o">/</span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="w"> </span><span class="p">.</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">rm</span><span class="w"> </span><span class="o">-</span><span class="n">rf</span><span class="w"> </span><span class="n">apps</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">xmlstarlet</span><span class="w"> </span><span class="n">sel</span><span class="w"> </span><span class="o">-</span><span class="n">t</span><span class="w"> </span><span class="o">-</span><span class="n">v</span><span class="w"> </span><span class="s1">'/map/string[@name="state"]/text()'</span><span class="w"> </span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="p">.</span><span class="k">state</span><span class="p">.</span><span class="n">base16</span><span class="p">.</span><span class="n">bin</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">xxd</span><span class="w"> </span><span class="o">-</span><span class="n">r</span><span class="w"> </span><span class="o">-</span><span class="n">p</span><span class="w"> </span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="p">.</span><span class="k">state</span><span class="p">.</span><span class="n">base16</span><span class="p">.</span><span class="n">bin</span><span class="w"> </span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="p">.</span><span class="k">state</span><span class="p">.</span><span class="n">bin</span><span class="w"></span>
+</pre>
+<ul>
+<li>Decrypt the saved state:</li>
+</ul>
+<pre class="code literal-block">openssl enc -d -des-ecb -K 4cb04fa74c7c07e9 -in save.xml.state.bin -out save.xml.state.bin.OPEN
+</pre>
+<p>Note that Java <code>DES</code> is <code>des-ecb</code> in <code>openssl</code> (whilst the latter uses <code>des</code> in <a href="https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Cipher_Block_Chaining_.28CBC.29">CBC mode</a>) since Java DES is in <a href="https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_Codebook_.28ECB.29">ECB mode</a> and specifying just <code>-des</code> in <code>openssl</code> will not decrypt the file.</p>
+<ul>
+<li>Now Mark the 197th level walked-through and enable the 198th level, disable ads using <code>jq</code>:</li>
+</ul>
+<h3>Patching</h3>
+<pre class="code literal-block">(jq -c '.unlocked['$(jq -c '.unlocked | index(0)' save.xml.state.bin.OPEN)']=1 | .hyperCount=999999 | .adFree=true' save.xml.state.bin.OPEN | tr -d '\n') &gt; PATCHED.save.xml.state.bin.OPEN
+</pre>
+<p>where</p>
+<ul>
+<li>
+<code>unlocked</code> — an array of levels that are locked (<code>0</code>) or unlocked (<code>1</code>);</li>
+<li>
+<code>hyperCount</code> — number of extra diamonds (can't make it 1000000 because <code>jq</code> converts it to <code>1e+6</code> that does not work in Jewels Saga resetting the game state completely);</li>
+<li>
+<code>adFree</code> — no ads, but this should not be modified letting the game developers earn some ads money.</li>
+</ul>
+<h2>Repacking</h2>
+<ul>
+<li>Encrypt the patched file:</li>
+</ul>
+<pre class="code literal-block">openssl enc -e -des-ecb -K 4cb04fa74c7c07e9 -in PATCHED.save.xml.state.bin.OPEN -out PATCHED.save.xml.state.bin
+</pre>
+<ul>
+<li>Save the patched state:</li>
+</ul>
+<pre class="code literal-block"><span class="p">(</span><span class="n">xxd</span><span class="w"> </span><span class="o">-</span><span class="n">p</span><span class="w"> </span><span class="n">PATCHED</span><span class="p">.</span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="p">.</span><span class="k">state</span><span class="p">.</span><span class="n">bin</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">tr</span><span class="w"> </span><span class="o">-</span><span class="n">d</span><span class="w"> </span><span class="s1">'\n'</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">PATCHED</span><span class="p">.</span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="p">.</span><span class="k">state</span><span class="p">.</span><span class="n">base16</span><span class="p">.</span><span class="n">bin</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">cp</span><span class="w"> </span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="w"> </span><span class="n">PATCHED</span><span class="p">.</span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">xmlstarlet</span><span class="w"> </span><span class="n">edit</span><span class="w"> </span><span class="o">-</span><span class="n">L</span><span class="w"> </span><span class="o">-</span><span class="n">u</span><span class="w"> </span><span class="s1">'/map/string[@name="state"]/text()'</span><span class="w"> </span><span class="o">-</span><span class="n">v</span><span class="w"> </span><span class="err">$</span><span class="p">(</span><span class="n">cat</span><span class="w"> </span><span class="n">PATCHED</span><span class="p">.</span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="p">.</span><span class="k">state</span><span class="p">.</span><span class="n">base16</span><span class="p">.</span><span class="n">bin</span><span class="p">)</span><span class="w"> </span><span class="n">PATCHED</span><span class="p">.</span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">mkdir</span><span class="w"> </span><span class="o">-</span><span class="n">p</span><span class="w"> </span><span class="n">apps</span><span class="o">/</span><span class="n">com</span><span class="p">.</span><span class="n">smilerlee</span><span class="p">.</span><span class="n">jewels</span><span class="o">/</span><span class="n">sp</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">tar</span><span class="w"> </span><span class="o">-</span><span class="n">xvf</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">smilerlee</span><span class="p">.</span><span class="n">jewels</span><span class="p">.</span><span class="n">ab</span><span class="p">.</span><span class="n">tar</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">cp</span><span class="w"> </span><span class="n">PATCHED</span><span class="p">.</span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="w"> </span><span class="n">apps</span><span class="o">/</span><span class="n">com</span><span class="p">.</span><span class="n">smilerlee</span><span class="p">.</span><span class="n">jewels</span><span class="o">/</span><span class="n">sp</span><span class="o">/</span><span class="k">save</span><span class="p">.</span><span class="nc">xml</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">tar</span><span class="w"> </span><span class="o">-</span><span class="n">cvf</span><span class="w"> </span><span class="n">PATCHED</span><span class="p">.</span><span class="n">com</span><span class="p">.</span><span class="n">smilerlee</span><span class="p">.</span><span class="n">jewels</span><span class="p">.</span><span class="n">ab</span><span class="p">.</span><span class="n">tar</span><span class="w"> </span><span class="o">-</span><span class="n">T</span><span class="w"> </span><span class="n">com</span><span class="p">.</span><span class="n">smilerlee</span><span class="p">.</span><span class="n">jewels</span><span class="p">.</span><span class="n">ab</span><span class="p">.</span><span class="n">tar</span><span class="p">.</span><span class="n">lst</span><span class="w"> </span><span class="err">\</span><span class="w"></span>
+<span class="w">    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">rm</span><span class="w"> </span><span class="o">-</span><span class="n">rf</span><span class="w"> </span><span class="n">apps</span><span class="w"></span>
+</pre>
+<p>Note that we use <code>tr</code> in order to remove the trailing newline because <code>jq</code> produces a new line.</p>
+<ul>
+<li>Convert the <code>tar</code> back to the <code>ab</code> format:</li>
+</ul>
+<pre class="code literal-block">java -jar abe-all.jar pack PATCHED.com.smilerlee.jewels.ab.tar PATCHED.com.smilerlee.jewels.ab
+</pre>
+<ul>
+<li>Restore the patched backup:</li>
+</ul>
+<pre class="code literal-block">adb restore PATCHED.com.smilerlee.jewels.ab
+</pre>
+<h3>Done</h3>
+<p>Today I have walked through all 275 levels with 3 starts for each level.
+Yes, that's cheating, but I won't spend much time for the game anymore.
+And the final screenshot:</p>
+<p><img alt="Jewels Saga extra diamonds paradise (999902 exta diamonds)" src="../../images/jewels-saga-cracked.jpg"></p>
+</div>
+        </div>
+        
+        <ul class="pager hidden-print">
+<li class="previous">
+                <a href="../2016-08-07-spring-security-preauthorize-annotation-custom-types-and-inspectable-dsl-support/" rel="prev" title="Spring Security @PreAuthorize annotation custom types and inspectable DSL support">Previous post</a>
+            </li>
+            <li class="next">
+                <a href="../2016-08-27-when-android-backup-and-restore-tools-may-fail/" rel="next" title="When Android backup and restore tools may fail">Next post</a>
+            </li>
+        </ul>
+<div id="disqus_thread"></div>
+        <script>
+        var disqus_shortname ="lsh-blog",
+            disqus_url="https://lyubomyr-shaydariv.github.io/posts/2016-08-25-cracking-jewels-saga-for-android/",
+        disqus_title="Cracking Jewels Saga for Android",
+        disqus_identifier="cache/posts/2016-08-25-cracking-jewels-saga-for-android.html",
+        disqus_config = function () {
+            this.language = "en";
+        };
+        (function() {
+            var dsq = document.createElement('script'); dsq.async = true;
+            dsq.src = 'https://' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script><noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" rel="nofollow">comments powered by Disqus.</a>
+</noscript>
+    <a href="https://disqus.com" class="dsq-brlink" rel="nofollow">Comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+        
+    
+
+
+    </div>
+
+        
+       <script>var disqus_shortname="lsh-blog";(function(){var a=document.createElement("script");a.async=true;a.src="https://"+disqus_shortname+".disqus.com/count.js";(document.getElementsByTagName("head")[0]||document.getElementsByTagName("body")[0]).appendChild(a)}());</script><footer id="footer"><p>Contents © 2021         <a href="mailto:">Lyubomyr Shaydariv</a> - Powered by         <a href="https://getnikola.com" rel="nofollow">Nikola</a>         </p>
+            
+        </footer>
+</div>
+    </section><noscript>
+<style type="text/css">
+	#google-analytics-no-js-placeholder {
+		background: url("http://nojsstats.appspot.com/UA-84297561-1/lyubomyr-shaydariv.github.io");
+	}
+</style>
+<div id="google-analytics-no-js-placeholder"></div>
+</noscript>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-84297561-1', 'auto');
+  ga('send', 'pageview');
+</script><script src="../../assets/js/all-nocdn.js" type="text/javascript"></script><script type="text/javascript">
+            $(function(){
+                $('.timeago').timeago();
+            });
+        </script>
+</body>
+</html>
